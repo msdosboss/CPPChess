@@ -83,14 +83,19 @@ Piece ***initBoard(SDL_Renderer *rend){
 		board[i] = new Piece*[COLLUMNS];
 	}
 
-	//White Pieces (will do later)
-	for(int i = 0; i < ROWS; i++){
-		board[i][0] = new Piece;
-	}
+	//White Pieces
+	board[0][0] = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, 0, 700);
+	board[1][0] = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0, 100, 700);
+	board[2][0] = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0, 200, 700);
+	board[3][0] = new Piece(QUEEN | WHITE, IMG_LoadTexture(rend, "img/whiteQueen.png"), 0, 300, 700);
+	board[4][0] = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0, 400, 700);
+	board[5][0] = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0, 500, 700);
+	board[6][0] = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0, 600, 700);
+	board[7][0] = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, 700, 700);
 
 	//White pawns
 	for(int i = 0; i < ROWS; i++){
-		board[i][1] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, i, 1);
+		board[i][1] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, i * 100, 600);
 	}
 	//middle of the board (empty)
 	for(int i = 2; i < 6; i++){
@@ -100,12 +105,17 @@ Piece ***initBoard(SDL_Renderer *rend){
 	}
 	//Black Pawns
 	for(int i = 0; i < ROWS; i++){
-		board[i][6] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, i, 1);
+		board[i][6] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, i * 100, 100);
 	}
 	//Black Pieces (will do later)
-	for(int i = 0; i < ROWS; i++){
-		board[i][7] = new Piece;
-	}
+	board[0][7] = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0, 0, 0);
+	board[1][7] = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0, 100, 0);
+	board[2][7] = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0, 200, 0);
+	board[3][7] = new Piece(QUEEN | BLACK, IMG_LoadTexture(rend, "img/blackQueen.png"), 0, 300, 0);
+	board[4][7] = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0, 400, 0);
+	board[5][7] = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0, 500, 0);
+	board[6][7] = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0, 600, 0);
+	board[7][7] = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0, 700, 0);
 
 	return board;
 }
@@ -135,10 +145,10 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 				//unsigned char val = frame->tiles[i / 8][j / 8].pixels[i % 8][j % 8];
 				//
 				if((((j + 1) / 100) % 2 != 0 && ((i + 1) / 100) % 2 != 0) || (((j + 1) / 100) % 2 == 0 && ((i + 1) / 100) % 2 == 0)){
-					pixels[j + i * WIDTH] = 255 << 24 | 255 << 16 | 255 << 8 | 255;
+					pixels[j + i * WIDTH] = 238 << 24 | 115 << 16 | 118 << 8 | 255;
 				}
 				else{
-					pixels[j + i * WIDTH] = 0 << 24 | 0 << 16 | 0 << 8 | 255;	
+					pixels[j + i * WIDTH] = 240 << 24 | 239 << 16 | 194 << 8 | 255;	
 				}
 
 			}
@@ -147,7 +157,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 		SDL_RenderCopy(rend, boardTexture, NULL, NULL);
 
 		for(int i = 0; i < ROWS; i++){
-			for(int j = 0; j < ROWS; j++){
+			for(int j = 0; j < COLLUMNS; j++){
 				if(board[i][j]->pieceID != 0){
 					SDL_RenderCopy(rend, board[i][j]->pieceImg, NULL, &(board[i][j]->rect));
 				}
