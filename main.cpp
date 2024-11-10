@@ -5,7 +5,10 @@
 
 #define WIDTH 800
 #define HEIGHT 800
+#define COLLUMNS 8
+#define ROWS 8
 #define FPS 60
+#define SIZE 100
 
 #define PAWN   0b00000001
 #define KNIGHT 0b00000010
@@ -22,20 +25,22 @@ class Piece {
 		uint8_t pieceID;
 		SDL_Texture *pieceImg;
 		uint8_t statusFlag;	//will be used for things like castle and en pasente
+		SDL_Rect rect;
 	
-	Piece(){
-		pieceID = 0;
-		pieceImg = NULL;
-		statusFlag = 0;
-	}
+		Piece(){
+			pieceID = 0;
+			pieceImg = NULL;
+			statusFlag = 0;
+		}
 
 
-	Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon){
-		pieceID = pieceIDCon;
-		pieceImg = pieceIDCon;
-		statusFlag = statusFlagCon;
-	}
-}
+		Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int xPos, int yPos){
+			pieceID = pieceIDCon;
+			pieceImg = pieceImgCon;
+			statusFlag = statusFlagCon;
+			rect = {(int) xPos, (int) yPos, SIZE, SIZE};
+		}
+};
 
 SDL_Window *initDisplay(){
 	/* Initializes the timer, audio, video, joystick,
@@ -72,6 +77,39 @@ SDL_Renderer *initRender(SDL_Window *wind){
 	return rend;
 }
 
+Piece ***initBoard(SDL_Renderer *rend){
+	Piece ***board = new Piece**[ROWS];
+	for(int i = 0; i < ROWS; i++){
+		board[i] = new Piece*[COLLUMNS];
+	}
+
+	//White Pieces (will do later)
+	for(int i = 0; i < ROWS; i++){
+		board[i][0] = new Piece;
+	}
+
+	//White pawns
+	for(int i = 0; i < ROWS; i++){
+		board[i][1] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, i, 1);
+	}
+	//middle of the board (empty)
+	for(int i = 2; i < 6; i++){
+		for(int j = 0; j < ROWS; j++){
+			board[j][i] = new Piece;	
+		}
+	}
+	//Black Pawns
+	for(int i = 0; i < ROWS; i++){
+		board[i][6] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, i, 1);
+	}
+	//Black Pieces (will do later)
+	for(int i = 0; i < ROWS; i++){
+		board[i][7] = new Piece;
+	}
+
+	return board;
+}
+
 int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	SDL_Event event;
@@ -81,6 +119,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 	int running = 1;
 
 	Uint32 *pixels = new Uint32[WIDTH * HEIGHT];
+
+	Piece ***board = initBoard(rend);
 
 	while(running){
 		while(SDL_PollEvent(&event)){
@@ -104,9 +144,18 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 			}
 		}
 		SDL_UpdateTexture(boardTexture, NULL, pixels, sizeof(Uint32) * WIDTH);
+		SDL_RenderCopy(rend, boardTexture, NULL, NULL);
+
+		for(int i = 0; i < ROWS; i++){
+			for(int j = 0; j < ROWS; j++){
+				if(board[i][j]->pieceID != 0){
+					SDL_RenderCopy(rend, board[i][j]->pieceImg, NULL, &(board[i][j]->rect));
+				}
+			}
+		}
+
 		/* Draw to window and loop */
 		//SDL_RenderClear(rend);
-		SDL_RenderCopy(rend, boardTexture, NULL, NULL);
 		SDL_RenderPresent(rend);
 		SDL_Delay(1000/FPS);
 
