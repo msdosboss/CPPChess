@@ -40,6 +40,8 @@ class Piece {
 			statusFlag = statusFlagCon;
 			rect = {(int) xPos, (int) yPos, SIZE, SIZE};
 		}
+
+		
 };
 
 SDL_Window *initDisplay(){
@@ -75,6 +77,74 @@ SDL_Renderer *initRender(SDL_Window *wind){
 	}
 
 	return rend;
+}
+
+Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
+	Piece ***board = new Piece**[ROWS];
+	for(int i = 0; i < ROWS; i++){
+		board[i] = new Piece*[COLLUMNS];
+	}
+
+	int i = 0;
+	int rank = 0;
+	int file = 0;
+	//Set up pieces
+	while(FEN[i] != ' '){
+		if(FEN[i] >= 0x30 && FEN[i] <= 0x39){
+			for(int j = 0; j < FEN[i] - 0x30; j++){
+				board[file + j][rank] = new Piece;
+			}
+			file += FEN[i] - 0x30;
+			i++;
+			continue;
+		}
+		switch(FEN[i]){
+			case '/':
+				file = -1;
+				rank++;
+				break;
+			case 'r':
+				board[file][rank] = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0, file * 100, rank * 100);
+				break;
+			case 'n':
+				board[file][rank] = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0, file * 100, rank * 100);
+				break;
+			case 'b':
+				board[file][rank] = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0, file * 100, rank * 100);
+				break;
+			case 'q':
+				board[file][rank] = new Piece(QUEEN | BLACK, IMG_LoadTexture(rend, "img/blackQueen.png"), 0, file * 100, rank * 100);
+				break;
+			case 'k':
+				board[file][rank] = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0, file * 100, rank * 100);
+				break;
+			case 'p':
+				board[file][rank] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, file * 100, rank * 100);
+				break;
+			case 'R':
+				board[file][rank] = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, file * 100, rank * 100);
+				break;
+			case 'N':
+				board[file][rank] = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0, file * 100, rank * 100);
+				break;
+			case 'B':
+				board[file][rank] = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0, file * 100, rank * 100);
+				break;
+			case 'Q':
+				board[file][rank] = new Piece(QUEEN | WHITE, IMG_LoadTexture(rend, "img/whiteQueen.png"), 0, file * 100, rank * 100);
+				break;
+			case 'K':
+				board[file][rank] = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0, file * 100, rank * 100);
+				break;
+			case 'P':
+				board[file][rank] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, file * 100, rank * 100);
+				break;
+				
+		}
+		i++;
+		file++;
+	}
+	return board;
 }
 
 Piece ***initBoard(SDL_Renderer *rend){
@@ -130,7 +200,9 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	Uint32 *pixels = new Uint32[WIDTH * HEIGHT];
 
-	Piece ***board = initBoard(rend);
+	//Piece ***board = initBoard(rend);
+
+	Piece ***board = fenToBoard("r2q1rk1/1bp1bppp/p1np1n2/1p2p3/3PP3/2P2N1P/PPB2PP1/RNBQR1K1 ", rend);
 
 	while(running){
 		while(SDL_PollEvent(&event)){
@@ -145,10 +217,10 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 				//unsigned char val = frame->tiles[i / 8][j / 8].pixels[i % 8][j % 8];
 				//
 				if((((j + 1) / 100) % 2 != 0 && ((i + 1) / 100) % 2 != 0) || (((j + 1) / 100) % 2 == 0 && ((i + 1) / 100) % 2 == 0)){
-					pixels[j + i * WIDTH] = 238 << 24 | 115 << 16 | 118 << 8 | 255;
+					pixels[j + i * WIDTH] = 240 << 24 | 239 << 16 | 194 << 8 | 255;	
 				}
 				else{
-					pixels[j + i * WIDTH] = 240 << 24 | 239 << 16 | 194 << 8 | 255;	
+					pixels[j + i * WIDTH] = 238 << 24 | 115 << 16 | 118 << 8 | 255;
 				}
 
 			}
