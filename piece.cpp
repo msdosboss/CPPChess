@@ -186,63 +186,75 @@ void pawnMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int se
 	int legalMovesIndex = 0;
 
 	if((board[selectedPieceFile][selectedPieceRank]->pieceID & BLACK) != 0){
-		for(int i = 1; i < 2 + selectedPieceFile == 1 ? 1 : 0; i++){
+		for(int i = 1; i < 2 + (selectedPieceRank == 1 ? 1 : 0); i++){
 			if(board[selectedPieceFile][selectedPieceRank + i]->pieceID == 0){
-				legalMoves[legalMovesIndex] = board[selectedPieceFile][selectedPieceRank + i];
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile][selectedPieceRank + i];
 			}
 			else{
 				break;
 			}
 		}
-
-		if((board[selectedPieceFile + 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank + 1];
-		}
+		if(selectedPieceFile + 1 < 8){
+			if((board[selectedPieceFile + 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank + 1];
+			}
 		
-		if(((board[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) == 1) && (board[selectedPieceFile + 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank + 1];
+			if(((board[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile + 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank + 1];
+			}
 		}
-
-		if((board[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank + 1];
-		}
-		
-		if(((board[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) == 1) && (board[selectedPieceFile - 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank + 1];
+		if(selectedPieceFile - 1 >= 0){
+			if((board[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank + 1];
+			}
+			
+			if(((board[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile - 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank + 1];
+			}
 		}
 	}
 	else{
-		for(int i = 1; i < 2 + selectedPieceFile == 6 ? 1 : 0; i++){
+		for(int i = 1; i < 2 + (selectedPieceRank == 6 ? 1 : 0); i++){
 			if(board[selectedPieceFile][selectedPieceRank - i]->pieceID == 0){
-				legalMoves[legalMovesIndex] = board[selectedPieceFile][selectedPieceRank - i];
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile][selectedPieceRank - i];
 			}
 			else{
 				break;
 			}
 		}
+		if(selectedPieceFile + 1 < 8){
+			if((board[selectedPieceFile + 1][selectedPieceRank - 1]->pieceID & BLACK) != 0){
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank - 1];
+			}
+			
+			if(((board[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile + 1][selectedPieceRank]->pieceID & BLACK) != 0){	//EN PASEN
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank - 1];
+			}
+		}
 
-		if((board[selectedPieceFile + 1][selectedPieceRank - 1]->pieceID & BLACK) != 0){
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank - 1];
+		if(selectedPieceFile - 1 >= 0){
+			if((board[selectedPieceFile - 1][selectedPieceRank - 1]->pieceID & BLACK) != 0){
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank - 1];
+			}
+			
+			if(((board[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile - 1][selectedPieceRank]->pieceID & BLACK) != 0){	//EN PASEN
+				legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank - 1];
+			}
 		}
-		
-		if(((board[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) == 1) && (board[selectedPieceFile + 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank - 1];
+	}
+	/*if(selectedPieceFile + 1 < 8){
+		if((board[selectedPieceFile + 1][selectedPieceRank]->pieceID & PAWN) == 1){
+			board[selectedPieceFile + 1][selectedPieceRank]->statusFlag &= ~PAWNENPASFLAG; 
 		}
+	}
+	if(selectedPieceFile - 1 >= 0){
+		if((board[selectedPieceFile - 1][selectedPieceRank]->pieceID & PAWN) == 1){
+			board[selectedPieceFile - 1][selectedPieceRank]->statusFlag &= ~PAWNENPASFLAG; 
+		}
+	}*/
 
-		if((board[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & BLACK) != 0){
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank - 1];
-		}
-		
-		if(((board[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) == 1) && (board[selectedPieceFile - 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
-			legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank - 1];
-		}
-	}
-	if((board[selectedPieceFile + 1][selectedPieceRank]->pieceID & PAWN) == 1){
-		board[selectedPieceFile + 1][selectedPieceRank]->statusFlag &= ~PAWNENPASFLAG; 
-	}
-	if((board[selectedPieceFile - 1][selectedPieceRank]->pieceID & PAWN) == 1){
-		board[selectedPieceFile - 1][selectedPieceRank]->statusFlag &= ~PAWNENPASFLAG; 
-	}
+	legalMoves[legalMovesIndex] = NULL;
+
 }
 Piece **Piece::piecesLegalMoves(Piece ***board){
 	Piece **legalMoves;
@@ -322,16 +334,53 @@ int Piece::move(Piece ***board, Piece *moveSquare, int color){
 		return 0;
 	}
 
-	//move piece
-	moveSquare->pieceID = pieceID;
-	moveSquare->pieceImg = pieceImg;
-	moveSquare->statusFlag = statusFlag;
-	
-	//remove piece from where it was
-	pieceID = 0;
-	pieceImg == NULL;
-	statusFlag = 0;
+	for(int i = 0; i < 8; i++){
+		for(int j = 0; j < 8; j++){
+			board[i][j]->statusFlag &= ~PAWNENPASFLAG;
+		}
+	}
 
+	int enpasFlag = 0;
+	if((pieceID & PAWN) == PAWN){
+		if(moveSquare->rect.y / 100 - rect.y / 100 == 2 || moveSquare->rect.y / 100 - rect.y / 100 == -2){
+			statusFlag |= PAWNENPASFLAG;
+		}
+		if(moveSquare->rect.x / 100 != rect.x / 100 && moveSquare->pieceID == 0){
+			enpasFlag = 1;
+		}
+	}
+	if(enpasFlag){
+		//move piece
+		moveSquare->pieceID = pieceID;
+		moveSquare->pieceImg = pieceImg;
+		moveSquare->statusFlag = statusFlag;
+		
+		//remove piece from where it was
+		pieceID = 0;
+		pieceImg == NULL;
+		statusFlag = 0;
+
+		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceID = 0;
+		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceImg = NULL;
+		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->statusFlag = 0;
+
+		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceID = 0;
+		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceImg = NULL;
+		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->statusFlag = 0;
+	
+
+	}
+	else{
+		//move piece
+		moveSquare->pieceID = pieceID;
+		moveSquare->pieceImg = pieceImg;
+		moveSquare->statusFlag = statusFlag;
+		
+		//remove piece from where it was
+		pieceID = 0;
+		pieceImg == NULL;
+		statusFlag = 0;
+	}
 	return 1;
 }
 

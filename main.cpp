@@ -82,12 +82,7 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
 				board[file][rank] = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0, file * 100, rank * 100);
 				break;
 			case 'p':
-				if(rank = 2){
-					board[file][rank] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), PAWNTWOMOVEFLAG, file * 100, rank * 100);
-				}
-				else{
-					board[file][rank] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, file * 100, rank * 100);
-				}
+				board[file][rank] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, file * 100, rank * 100);
 				break;
 			case 'R':
 				board[file][rank] = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, file * 100, rank * 100);
@@ -105,12 +100,7 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
 				board[file][rank] = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0, file * 100, rank * 100);
 				break;
 			case 'P':
-				if(rank = 6){
-					board[file][rank] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), PAWNTWOMOVEFLAG, file * 100, rank * 100);
-				}
-				else{
-					board[file][rank] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, file * 100, rank * 100);
-				}
+				board[file][rank] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, file * 100, rank * 100);
 				break;
 				
 		}
@@ -286,19 +276,11 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 				}
 			}
 		}
-		std::cout << "orca" << "\n";
-
-		fflush(stdout);
-
 		/* Draw to window and loop */
 		//SDL_RenderClear(rend);
 		SDL_RenderPresent(rend);
 		SDL_Delay(1000/FPS);
 		
-		std::cout << "orca2" << "\n";
-
-		fflush(stdout);
-
 		if(isMoveLegal){
 			color = (color == WHITE) ? BLACK : WHITE;
 		}
