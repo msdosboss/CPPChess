@@ -1,48 +1,11 @@
 //g++ -o main main.cpp `sdl2-config --cflags --libs` -lSDL2_image
-#include <iostream>
-#include <SDL.h>
-#include <SDL_image.h>
+#include "piece.h"
 
 #define WIDTH 800
 #define HEIGHT 800
 #define COLLUMNS 8
 #define ROWS 8
 #define FPS 60
-#define SIZE 100
-
-#define PAWN   0b00000001
-#define KNIGHT 0b00000010
-#define BISHOP 0b00000011
-#define ROOK   0b00000100
-#define QUEEN  0b00000101
-#define KING   0b00000111
-
-#define WHITE  0b00001000
-#define BLACK  0b00010000
-
-class Piece {
-	public:
-		uint8_t pieceID;
-		SDL_Texture *pieceImg;
-		uint8_t statusFlag;	//will be used for things like castle and en pasente
-		SDL_Rect rect;
-	
-		Piece(){
-			pieceID = 0;
-			pieceImg = NULL;
-			statusFlag = 0;
-		}
-
-
-		Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int xPos, int yPos){
-			pieceID = pieceIDCon;
-			pieceImg = pieceImgCon;
-			statusFlag = statusFlagCon;
-			rect = {(int) xPos, (int) yPos, SIZE, SIZE};
-		}
-
-		
-};
 
 SDL_Window *initDisplay(){
 	/* Initializes the timer, audio, video, joystick,
@@ -92,7 +55,7 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
 	while(FEN[i] != ' '){
 		if(FEN[i] >= 0x30 && FEN[i] <= 0x39){
 			for(int j = 0; j < FEN[i] - 0x30; j++){
-				board[file + j][rank] = new Piece;
+				board[file + j][rank] = new Piece((file + j) * 100, rank * 100);
 			}
 			file += FEN[i] - 0x30;
 			i++;
@@ -119,7 +82,12 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
 				board[file][rank] = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0, file * 100, rank * 100);
 				break;
 			case 'p':
-				board[file][rank] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, file * 100, rank * 100);
+				if(rank = 2){
+					board[file][rank] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), PAWNTWOMOVEFLAG, file * 100, rank * 100);
+				}
+				else{
+					board[file][rank] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, file * 100, rank * 100);
+				}
 				break;
 			case 'R':
 				board[file][rank] = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, file * 100, rank * 100);
@@ -137,7 +105,12 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
 				board[file][rank] = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0, file * 100, rank * 100);
 				break;
 			case 'P':
-				board[file][rank] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, file * 100, rank * 100);
+				if(rank = 6){
+					board[file][rank] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), PAWNTWOMOVEFLAG, file * 100, rank * 100);
+				}
+				else{
+					board[file][rank] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, file * 100, rank * 100);
+				}
 				break;
 				
 		}
@@ -145,6 +118,28 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
 		file++;
 	}
 	return board;
+}
+
+void freeTextures(Piece ***board){
+	for(int i = 0; i < COLLUMNS; i++){
+		for(int j = 0; j < ROWS; j++){
+			if(board[i][j]->pieceImg != NULL){
+				SDL_DestroyTexture(board[i][j]->pieceImg);
+			}
+		}
+	}
+}
+
+void freeBoard(Piece ***board){
+	for(int i = 0; i < COLLUMNS; i++){
+		for(int j = 0; j < ROWS; j++){
+			delete board[i][j];
+		}
+	}
+	for(int i = 0; i < ROWS; i++){
+		delete board[i];
+	}
+	delete board;
 }
 
 Piece ***initBoard(SDL_Renderer *rend){
@@ -170,7 +165,7 @@ Piece ***initBoard(SDL_Renderer *rend){
 	//middle of the board (empty)
 	for(int i = 2; i < 6; i++){
 		for(int j = 0; j < ROWS; j++){
-			board[j][i] = new Piece;	
+			board[j][i] = new Piece(j, i);	
 		}
 	}
 	//Black Pawns
@@ -190,6 +185,23 @@ Piece ***initBoard(SDL_Renderer *rend){
 	return board;
 }
 
+void highlightSelectedPiece(Uint32 *pixels, int pieceSelectedX, int pieceSelectedY){
+	Uint32 pixelColor = 0 << 24 | 0 << 16 | 0 << 8 | 255;
+
+	for(int i = (pieceSelectedX / 100) * 100; i < (pieceSelectedX / 100) * 100 + 100; i++){
+		pixels[((pieceSelectedY / 100) * 100) * HEIGHT + i] = pixelColor;
+		pixels[((pieceSelectedY / 100) * 100) * HEIGHT + i + 1] = pixelColor; 
+		pixels[((pieceSelectedY / 100) * 100 + 99) * HEIGHT + i] = pixelColor;
+		pixels[((pieceSelectedY / 100) * 100 + 98) * HEIGHT + i] = pixelColor;
+	}
+	for(int i = (pieceSelectedY / 100) * 100; i < (pieceSelectedY / 100) * 100 + 100; i++){
+		pixels[(pieceSelectedX / 100) * 100 + i * WIDTH] = pixelColor;
+		pixels[(pieceSelectedX / 100) * 100 + 1 + i * WIDTH] = pixelColor;
+		pixels[((pieceSelectedX / 100) * 100 + 99) + i * WIDTH] = pixelColor;
+		pixels[((pieceSelectedX / 100) * 100 + 98) + i * WIDTH] = pixelColor;
+	}
+}
+
 int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	SDL_Event event;
@@ -202,16 +214,46 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	//Piece ***board = initBoard(rend);
 
-	Piece ***board = fenToBoard("r2q1rk1/1bp1bppp/p1np1n2/1p2p3/3PP3/2P2N1P/PPB2PP1/RNBQR1K1 ", rend);
+	Piece *pieceSelected = NULL;
 
+	int color = WHITE;
+
+	int pieceSelectedState = 0;	//0 = no piece clicked, 1 = piece clicked, 2 = move selected
+
+	int pieceSelectedX = 0;
+
+	int pieceSelectedY = 0;
+
+	Piece ***board = fenToBoard("r2q1rk1/1bp1bppp/p1np1n2/1p2p3/3PP3/2P2N1P/PPB2PP1/RNBQR1K1 ", rend);
+	
 	while(running){
 		while(SDL_PollEvent(&event)){
 			switch(event.type){
 				case SDL_QUIT:
 					running = 0;
 					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if(!pieceSelectedState){
+						pieceSelectedState = 1;
+						pieceSelectedX = event.button.x;
+						pieceSelectedY = event.button.y;
+						pieceSelected = board[pieceSelectedX / 100][pieceSelectedY / 100]; 
+					}
+					else{
+						pieceSelectedState = 2;
+						pieceSelectedX = event.button.x;
+						pieceSelectedY = event.button.y;
+					}
 			}
 		}
+
+		int isMoveLegal = 0;
+
+		if(pieceSelectedState == 2){
+			isMoveLegal = pieceSelected->move(board, board[pieceSelectedX / 100][pieceSelectedY / 100], color);
+			pieceSelectedState = 0;
+		}
+
 		for(int i = 0; i < WIDTH; i++){
 			for(int j = 0; j < HEIGHT; j++){
 				//unsigned char val = frame->tiles[i / 8][j / 8].pixels[i % 8][j % 8];
@@ -225,9 +267,18 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 			}
 		}
+
+		
+		if(pieceSelectedState == 1 && board[pieceSelectedX / 100][pieceSelectedY / 100]->pieceID != 0){
+			highlightSelectedPiece(pixels, pieceSelectedX, pieceSelectedY);	
+		}
+		else{
+			pieceSelectedState = 0;
+		}
+
 		SDL_UpdateTexture(boardTexture, NULL, pixels, sizeof(Uint32) * WIDTH);
 		SDL_RenderCopy(rend, boardTexture, NULL, NULL);
-
+		
 		for(int i = 0; i < ROWS; i++){
 			for(int j = 0; j < COLLUMNS; j++){
 				if(board[i][j]->pieceID != 0){
@@ -235,14 +286,31 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 				}
 			}
 		}
+		std::cout << "orca" << "\n";
+
+		fflush(stdout);
 
 		/* Draw to window and loop */
 		//SDL_RenderClear(rend);
 		SDL_RenderPresent(rend);
 		SDL_Delay(1000/FPS);
+		
+		std::cout << "orca2" << "\n";
+
+		fflush(stdout);
+
+		if(isMoveLegal){
+			color = (color == WHITE) ? BLACK : WHITE;
+		}
 
 	}
 
+	/* Release resources */
+	//Still need to Destroy all the textures;
+	freeTextures(board);
+	SDL_DestroyRenderer(rend);
+	SDL_DestroyWindow(wind);
+	freeBoard(board);
 	delete[] pixels;
 	return 0;
 }
