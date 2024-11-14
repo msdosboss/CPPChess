@@ -256,6 +256,60 @@ void pawnMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int se
 	legalMoves[legalMovesIndex] = NULL;
 
 }
+
+void kingMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank){
+	int legalMovesIndex = 0;
+	if(selectedPieceFile + 1 < 8 && selectedPieceRank + 1 < 8){
+		if(((board[selectedPieceFile + 1][selectedPieceRank + 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank + 1];
+		}
+	}
+	if(selectedPieceFile + 1 < 8 && selectedPieceRank - 1 >= 0){
+		if(((board[selectedPieceFile + 1][selectedPieceRank - 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank - 1];
+		}
+	}
+
+	if(selectedPieceFile - 1 >= 0 && selectedPieceRank + 1 < 8){
+		if(((board[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank + 1];
+		}
+	}
+
+	if(selectedPieceFile - 1 >= 0 && selectedPieceRank - 1 >= 0){
+		if(((board[selectedPieceFile - 1][selectedPieceRank - 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank - 1];
+		}
+	}
+
+	if(selectedPieceFile + 1 < 8){
+		if(((board[selectedPieceFile + 1][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile + 1][selectedPieceRank];
+		}
+	}
+
+	if(selectedPieceRank + 1 < 8){
+		if(((board[selectedPieceFile][selectedPieceRank + 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile][selectedPieceRank + 1];
+		}
+	}
+
+	if(selectedPieceFile - 1 >= 0){
+		if(((board[selectedPieceFile - 1][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile - 1][selectedPieceRank];
+		}
+	}
+
+	if(selectedPieceRank - 1 >= 0){
+		if(((board[selectedPieceFile][selectedPieceRank - 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+			legalMoves[legalMovesIndex++] = board[selectedPieceFile][selectedPieceRank - 1];
+		}
+	}
+
+	legalMoves[legalMovesIndex] = NULL;
+
+}
+
 Piece **Piece::piecesLegalMoves(Piece ***board){
 	Piece **legalMoves;
 	
@@ -301,8 +355,8 @@ Piece **Piece::piecesLegalMoves(Piece ***board){
 		}
 
 		case KING:{
-			return NULL;
 			legalMoves = new Piece*[9];	//8 is the most moves a queen can make + 1 for NULL
+			kingMoves(board, legalMoves, file, rank);
 			break;
 		}
 	}
@@ -340,47 +394,44 @@ int Piece::move(Piece ***board, Piece *moveSquare, int color){
 		}
 	}
 
-	int enpasFlag = 0;
-	if((pieceID & PAWN) == PAWN){
+	if((pieceID & 0b111) == PAWN){
 		if(moveSquare->rect.y / 100 - rect.y / 100 == 2 || moveSquare->rect.y / 100 - rect.y / 100 == -2){
 			statusFlag |= PAWNENPASFLAG;
 		}
 		if(moveSquare->rect.x / 100 != rect.x / 100 && moveSquare->pieceID == 0){
-			enpasFlag = 1;
+			//move piece
+			moveSquare->pieceID = pieceID;
+			moveSquare->pieceImg = pieceImg;
+			moveSquare->statusFlag = statusFlag;
+			
+			//remove piece from where it was
+			pieceID = 0;
+			pieceImg == NULL;
+			statusFlag = 0;
+
+			board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceID = 0;
+			board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceImg = NULL;
+			board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->statusFlag = 0;
+
+			board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceID = 0;
+			board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceImg = NULL;
+			board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->statusFlag = 0;
+		
+			return 1;
 		}
 	}
-	if(enpasFlag){
-		//move piece
-		moveSquare->pieceID = pieceID;
-		moveSquare->pieceImg = pieceImg;
-		moveSquare->statusFlag = statusFlag;
-		
-		//remove piece from where it was
-		pieceID = 0;
-		pieceImg == NULL;
-		statusFlag = 0;
 
-		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceID = 0;
-		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceImg = NULL;
-		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->statusFlag = 0;
-
-		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceID = 0;
-		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceImg = NULL;
-		board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->statusFlag = 0;
+	//move piece
+	moveSquare->pieceID = pieceID;
+	moveSquare->pieceImg = pieceImg;
+	moveSquare->statusFlag = statusFlag;
 	
+	//remove piece from where it was
+	pieceID = 0;
+	pieceImg == NULL;
+	statusFlag = 0;
 
-	}
-	else{
-		//move piece
-		moveSquare->pieceID = pieceID;
-		moveSquare->pieceImg = pieceImg;
-		moveSquare->statusFlag = statusFlag;
-		
-		//remove piece from where it was
-		pieceID = 0;
-		pieceImg == NULL;
-		statusFlag = 0;
-	}
+	delete[] legalMoves;
 	return 1;
 }
 

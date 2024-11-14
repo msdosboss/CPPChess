@@ -17,7 +17,7 @@
 #define WHITE  0b00001000
 #define BLACK  0b00010000
 
-#define PAWNTWOMOVEFLAG 0b1
+#define CANCASTLE 0b1
 #define PAWNENPASFLAG 0b10
 
 class Piece {
@@ -38,4 +38,6 @@ class Piece {
 
 void slidingMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank, int ver, int hor);
 void knightMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void pawnMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void kingMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank);
 #endif

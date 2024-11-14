@@ -42,7 +42,7 @@ SDL_Renderer *initRender(SDL_Window *wind){
 	return rend;
 }
 
-Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
+Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 	Piece ***board = new Piece**[ROWS];
 	for(int i = 0; i < ROWS; i++){
 		board[i] = new Piece*[COLLUMNS];
@@ -107,6 +107,15 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend){
 		i++;
 		file++;
 	}
+
+	if(FEN[++i] == 'w'){
+		*color = WHITE;
+	}
+
+	else{
+		*color = BLACK;
+	}
+
 	return board;
 }
 
@@ -206,7 +215,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	Piece *pieceSelected = NULL;
 
-	int color = WHITE;
+	int color;
 
 	int pieceSelectedState = 0;	//0 = no piece clicked, 1 = piece clicked, 2 = move selected
 
@@ -214,7 +223,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	int pieceSelectedY = 0;
 
-	Piece ***board = fenToBoard("r2q1rk1/1bp1bppp/p1np1n2/1p2p3/3PP3/2P2N1P/PPB2PP1/RNBQR1K1 ", rend);
+	Piece ***board = fenToBoard("r2q1rk1/1bp1bppp/p1np1n2/1p2p3/3PP3/2P2N1P/PPB2PP1/RNBQR1K1 b", rend, &color);
 	
 	while(running){
 		while(SDL_PollEvent(&event)){
