@@ -7,7 +7,7 @@
 #define ROWS 8
 #define FPS 60
 
-SDL_Window *initDisplay(){
+SDL_Window *initDisplay(int width, int height, int x, int y, Uint32 flag){
 	/* Initializes the timer, audio, video, joystick,
 	haptic, gamecontroller and events subsystems */
 	if(SDL_Init(SDL_INIT_EVERYTHING) != 0){
@@ -15,10 +15,10 @@ SDL_Window *initDisplay(){
 		return 0;
 	}
 	/* Create a window */
-	SDL_Window* wind = SDL_CreateWindow("Hello Platformer!",
-				      SDL_WINDOWPOS_CENTERED,
-				      SDL_WINDOWPOS_CENTERED,
-				      WIDTH, HEIGHT, 0);
+	SDL_Window* wind = SDL_CreateWindow("Graggle Chess",
+				      x,
+				      y,
+				      width, height, flag);
 	if(!wind){
 		printf("Error creating window: %s\n", SDL_GetError());
 		SDL_Quit();
@@ -116,6 +116,34 @@ Piece ***fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 		*color = BLACK;
 	}
 
+	i++;	//Should be index on space after this is run
+
+	if(FEN[++i] == 'K'){
+		board[4][7]->statusFlag |= CANCASTLE; 	//king will always be in starting location if it can castle
+		board[7][7]->statusFlag |= CANCASTLE; 	//rook will always be in starting location if it can castle
+		i++;
+	}
+
+	if(FEN[i] == 'Q'){	
+		board[4][7]->statusFlag |= CANCASTLE; 	//king will always be in starting location if it can castle
+		board[0][7]->statusFlag |= CANCASTLE; 	//rook will always be in starting location if it can castle
+		i++;
+	}
+
+	if(FEN[i] == 'k'){	
+		board[4][0]->statusFlag |= CANCASTLE; 	//king will always be in starting location if it can castle
+		board[7][0]->statusFlag |= CANCASTLE; 	//rook will always be in starting location if it can castle
+		i++;
+	}
+
+	if(FEN[i] == 'q'){	
+		board[4][0]->statusFlag |= CANCASTLE; 	//king will always be in starting location if it can castle
+		board[0][0]->statusFlag |= CANCASTLE;	//rook will always be in starting location if it can castle
+		i++;
+	}
+
+	i++;	//Should be index on space after this is run
+
 	return board;
 }
 
@@ -136,52 +164,9 @@ void freeBoard(Piece ***board){
 		}
 	}
 	for(int i = 0; i < ROWS; i++){
-		delete board[i];
+		delete[] board[i];
 	}
-	delete board;
-}
-
-Piece ***initBoard(SDL_Renderer *rend){
-	Piece ***board = new Piece**[ROWS];
-	for(int i = 0; i < ROWS; i++){
-		board[i] = new Piece*[COLLUMNS];
-	}
-
-	//White Pieces
-	board[0][0] = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, 0, 700);
-	board[1][0] = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0, 100, 700);
-	board[2][0] = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0, 200, 700);
-	board[3][0] = new Piece(QUEEN | WHITE, IMG_LoadTexture(rend, "img/whiteQueen.png"), 0, 300, 700);
-	board[4][0] = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0, 400, 700);
-	board[5][0] = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0, 500, 700);
-	board[6][0] = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0, 600, 700);
-	board[7][0] = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, 700, 700);
-
-	//White pawns
-	for(int i = 0; i < ROWS; i++){
-		board[i][1] = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, i * 100, 600);
-	}
-	//middle of the board (empty)
-	for(int i = 2; i < 6; i++){
-		for(int j = 0; j < ROWS; j++){
-			board[j][i] = new Piece(j, i);	
-		}
-	}
-	//Black Pawns
-	for(int i = 0; i < ROWS; i++){
-		board[i][6] = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, i * 100, 100);
-	}
-	//Black Pieces
-	board[0][7] = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0, 0, 0);
-	board[1][7] = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0, 100, 0);
-	board[2][7] = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0, 200, 0);
-	board[3][7] = new Piece(QUEEN | BLACK, IMG_LoadTexture(rend, "img/blackQueen.png"), 0, 300, 0);
-	board[4][7] = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0, 400, 0);
-	board[5][7] = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0, 500, 0);
-	board[6][7] = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0, 600, 0);
-	board[7][7] = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0, 700, 0);
-
-	return board;
+	delete[] board;
 }
 
 void highlightSelectedPiece(Uint32 *pixels, int pieceSelectedX, int pieceSelectedY){
@@ -201,6 +186,66 @@ void highlightSelectedPiece(Uint32 *pixels, int pieceSelectedX, int pieceSelecte
 	}
 }
 
+uint8_t promoWindow(int color){
+	SDL_Window *wind = initDisplay(400, 100, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED + 500, SDL_WINDOW_INPUT_GRABBED);
+
+	SDL_Renderer *rend = initRender(wind);
+	
+	SDL_Texture *backgroundTexture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 400, 100);
+	
+	Uint32 *pixels = new Uint32[400 * 100];
+
+	SDL_Event event;
+
+	if(color == BLACK){
+		for(int i = 0; i < 400 * 100; i++){
+			pixels[i] = 255 << 24 | 255 << 16 | 255 << 8 | 255;
+		}
+		SDL_UpdateTexture(backgroundTexture, NULL, pixels, sizeof(Uint32) * 400);
+		SDL_RenderCopy(rend, backgroundTexture, NULL, NULL);
+	}
+
+	Piece **promoPieces = new Piece*[4];
+
+	promoPieces[0] = new Piece(QUEEN | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteQueen.png") : IMG_LoadTexture(rend, "img/blackQueen.png"), 0, 0, 0);
+	promoPieces[1] = new Piece(ROOK | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteRook.png") : IMG_LoadTexture(rend, "img/blackRook.png"), 0, 100, 0);
+	promoPieces[2] = new Piece(BISHOP | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteBishop.png") : IMG_LoadTexture(rend, "img/blackBishop.png"), 0, 200, 0);
+	promoPieces[3] = new Piece(KNIGHT | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteKnight.png") : IMG_LoadTexture(rend, "img/blackKnight.png"), 0, 300, 0);
+
+	for(int i = 0; i < 4; i++){
+		SDL_RenderCopy(rend, promoPieces[i]->pieceImg, NULL, &(promoPieces[i]->rect));
+	}
+
+	SDL_RenderPresent(rend);
+
+	while(1){
+		while(SDL_PollEvent(&event)){
+			switch(event.type){
+				case SDL_MOUSEBUTTONDOWN:
+					for(int i = 0; i < 4; i++){
+						SDL_DestroyTexture(promoPieces[i]->pieceImg);
+						delete promoPieces[i];
+					}
+					delete [] promoPieces;
+					SDL_DestroyTexture(backgroundTexture);
+					delete pixels;
+					SDL_DestroyRenderer(rend);
+					SDL_DestroyWindow(wind);
+					switch(event.button.x / 100){
+						case 0:
+							return PAWNPROMOQUEENFLAG;
+						case 1:
+							return PAWNPROMOROOKFLAG;
+						case 2:
+							return PAWNPROMOBISHOPFLAG;
+						case 3:
+							return PAWNPROMOKNIGHTFLAG; 
+					}
+			}
+		}
+	}
+}
+
 int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	SDL_Event event;
@@ -210,8 +255,6 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 	int running = 1;
 
 	Uint32 *pixels = new Uint32[WIDTH * HEIGHT];
-
-	//Piece ***board = initBoard(rend);
 
 	Piece *pieceSelected = NULL;
 
@@ -223,7 +266,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	int pieceSelectedY = 0;
 
-	Piece ***board = fenToBoard("r2q1rk1/1bp1bppp/p1np1n2/1p2p3/3PP3/2P2N1P/PPB2PP1/RNBQR1K1 b", rend, &color);
+	Piece ***board = fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", rend, &color);
 	
 	while(running){
 		while(SDL_PollEvent(&event)){
@@ -234,14 +277,14 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 				case SDL_MOUSEBUTTONDOWN:
 					if(!pieceSelectedState){
 						pieceSelectedState = 1;
-						pieceSelectedX = event.button.x;
-						pieceSelectedY = event.button.y;
-						pieceSelected = board[pieceSelectedX / 100][pieceSelectedY / 100]; 
+						pieceSelectedX = event.button.x / 100;
+						pieceSelectedY = event.button.y / 100;
+						pieceSelected = board[pieceSelectedX][pieceSelectedY]; 
 					}
 					else{
 						pieceSelectedState = 2;
-						pieceSelectedX = event.button.x;
-						pieceSelectedY = event.button.y;
+						pieceSelectedX = event.button.x / 100;
+						pieceSelectedY = event.button.y / 100;
 					}
 			}
 		}
@@ -249,7 +292,11 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 		int isMoveLegal = 0;
 
 		if(pieceSelectedState == 2){
-			isMoveLegal = pieceSelected->move(board, board[pieceSelectedX / 100][pieceSelectedY / 100], color);
+			uint8_t promoChoice = PAWNPROMOQUEENFLAG;
+			if((pieceSelected->pieceID & 0b00111) == PAWN && (pieceSelectedY == 7 || pieceSelectedY == 0)){
+				promoChoice = promoWindow(color);
+			}
+			isMoveLegal = pieceSelected->move(board, board[pieceSelectedX][pieceSelectedY], color, promoChoice, rend);
 			pieceSelectedState = 0;
 		}
 
@@ -268,8 +315,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 		}
 
 		
-		if(pieceSelectedState == 1 && board[pieceSelectedX / 100][pieceSelectedY / 100]->pieceID != 0){
-			highlightSelectedPiece(pixels, pieceSelectedX, pieceSelectedY);	
+		if(pieceSelectedState == 1 && board[pieceSelectedX][pieceSelectedY]->pieceID != 0){
+			highlightSelectedPiece(pixels, pieceSelectedX * 100, pieceSelectedY * 100);	
 		}
 		else{
 			pieceSelectedState = 0;
@@ -297,7 +344,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 	}
 
 	/* Release resources */
-	//Still need to Destroy all the textures;
+	SDL_DestroyTexture(boardTexture);
 	freeTextures(board);
 	SDL_DestroyRenderer(rend);
 	SDL_DestroyWindow(wind);
@@ -306,8 +353,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 	return 0;
 }
 
-int main(){
-	SDL_Window *wind = initDisplay();
+int main(){ 
+	SDL_Window *wind = initDisplay(WIDTH, HEIGHT, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0);
 
 	SDL_Renderer *rend = initRender(wind);
 

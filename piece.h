@@ -2,6 +2,7 @@
 #define PIECE_H
 #include <iostream>
 #include <cstdint>
+#include <algorithm>
 #include <SDL.h>
 #include <SDL_image.h>
 
@@ -19,6 +20,21 @@
 
 #define CANCASTLE 0b1
 #define PAWNENPASFLAG 0b10
+#define PAWNPROMOQUEENFLAG 0b100
+#define PAWNPROMOROOKFLAG 0b1000
+#define PAWNPROMOBISHOPFLAG 0b10000
+#define PAWNPROMOKNIGHTFLAG 0b100000
+#define KINGSIDECASTLE 0b1000000
+#define QUEENSIDECASTLE 0b10000000
+
+class Move{
+	public:
+		int file;
+		int rank;
+		uint8_t statusFlag;
+
+		Move(int fileCon, int rankCon, uint8_t statusFlagCon);
+};
 
 class Piece {
 	public:
@@ -30,14 +46,15 @@ class Piece {
 		Piece(int xPos, int yPos);
 		Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int xPos, int yPos);
 
-		Piece **piecesLegalMoves(Piece ***board);
-		int move(Piece ***board, Piece *moveSquare, int color);
+		Move **piecesLegalMoves(Piece ***board);
+		int move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend);
 
 		
 };
 
-void slidingMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank, int ver, int hor);
-void knightMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank);
-void pawnMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank);
-void kingMoves(Piece ***board, Piece **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void freeLegalMoves(Move **legalMoves);
+void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank, int ver, int hor);
+void knightMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void kingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
 #endif
