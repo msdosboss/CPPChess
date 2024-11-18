@@ -246,6 +246,10 @@ uint8_t promoWindow(int color){
 	}
 }
 
+Piece **attackedSquares(Piece ***board){
+	
+}
+
 int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	SDL_Event event;

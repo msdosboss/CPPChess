@@ -373,7 +373,7 @@ void kingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 
 }
 
-struct Move **Piece::piecesLegalMoves(Piece ***board){
+Move **Piece::piecesLegalMoves(Piece ***board){
 	Move **legalMoves;
 	
 	uint8_t pieceIDNoColor = pieceID & 0b111;
@@ -425,6 +425,17 @@ struct Move **Piece::piecesLegalMoves(Piece ***board){
 	}
 
 	return legalMoves;
+}
+
+void Piece::squaresAttacked(Piece ***board){
+	Move **legalMoves = piecesLegalMoves(board);
+
+	int i = 0;
+	while(legalMoves[i] != NULL){
+		attackedSquares[i] = board[legalMoves[i]->file][legalMoves[i]->rank];
+	}
+	freeLegalMoves(legalMoves);
+	delete [] legalMoves;
 }
 
 int Piece::move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend){

@@ -42,10 +42,12 @@ class Piece {
 		SDL_Texture *pieceImg;
 		uint8_t statusFlag;	//will be used for things like castle and en pasente
 		SDL_Rect rect;
+		Piece[27] *attackedSquares;	//27 is the most squares one piece can attack 
 	
 		Piece(int xPos, int yPos);
 		Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int xPos, int yPos);
 
+		void squaresAttacked(Piece ***board);
 		Move **piecesLegalMoves(Piece ***board);
 		int move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend);
 
