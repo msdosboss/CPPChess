@@ -51,6 +51,9 @@ Board fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 	//Set up pieces
 	while(FEN[i] != ' '){
 		if(FEN[i] >= 0x30 && FEN[i] <= 0x39){
+			for(int j = 0; j < FEN[i] - 0x30; j++){
+				board.squares[file][rank].piece = new Piece(file, rank);
+			}
 			file += FEN[i] - 0x30;
 			i++;
 			continue;
@@ -61,40 +64,40 @@ Board fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 				rank++;
 				break;
 			case 'r':
-				board.squares[file][rank].piece = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0);
+				board.squares[file][rank].piece = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0, file, rank);
 				break;
 			case 'n':
-				board.squares[file][rank].piece = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0);
+				board.squares[file][rank].piece = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0, file, rank);
 				break;
 			case 'b':
-				board.squares[file][rank].piece = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0);
+				board.squares[file][rank].piece = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0, file, rank);
 				break;
 			case 'q':
-				board.squares[file][rank].piece = new Piece(QUEEN | BLACK, IMG_LoadTexture(rend, "img/blackQueen.png"), 0);
+				board.squares[file][rank].piece = new Piece(QUEEN | BLACK, IMG_LoadTexture(rend, "img/blackQueen.png"), 0, file, rank);
 				break;
 			case 'k':
-				board.squares[file][rank].piece = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0);
+				board.squares[file][rank].piece = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0, file, rank);
 				break;
 			case 'p':
-				board.squares[file][rank].piece = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0);
+				board.squares[file][rank].piece = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, file, rank);
 				break;
 			case 'R':
-				board.squares[file][rank].piece = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0);
+				board.squares[file][rank].piece = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, file, rank);
 				break;
 			case 'N':
-				board.squares[file][rank].piece = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0);
+				board.squares[file][rank].piece = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0, file, rank);
 				break;
 			case 'B':
-				board.squares[file][rank].piece = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0);
+				board.squares[file][rank].piece = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0, file, rank);
 				break;
 			case 'Q':
-				board.squares[file][rank].piece = new Piece(QUEEN | WHITE, IMG_LoadTexture(rend, "img/whiteQueen.png"), 0);
+				board.squares[file][rank].piece = new Piece(QUEEN | WHITE, IMG_LoadTexture(rend, "img/whiteQueen.png"), 0, file, rank);
 				break;
 			case 'K':
-				board.squares[file][rank].piece = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0);
+				board.squares[file][rank].piece = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0, file, rank);
 				break;
 			case 'P':
-				board.squares[file][rank].piece = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0);
+				board.squares[file][rank].piece = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, file, rank);
 				break;
 				
 		}
@@ -145,7 +148,7 @@ void freeTextures(Board *board){
 	for(int i = 0; i < COLLUMNS; i++){
 		for(int j = 0; j < ROWS; j++){
 			if(board[i][j]->pieceImg != NULL){
-				SDL_DestroyTexture(board->squares[i][j].pieces->pieceImg);
+				SDL_DestroyTexture(board->squares[i][j].piece->pieceImg);
 			}
 		}
 	}
@@ -154,7 +157,7 @@ void freeTextures(Board *board){
 void freeBoard(Board *board){
 	for(int i = 0; i < COLLUMNS; i++){
 		for(int j = 0; j < ROWS; j++){
-			delete board->squares.pieces[i][j];
+			delete board->squares[i][j].piece;
 		}
 	}
 }
@@ -200,10 +203,10 @@ uint8_t promoWindow(int color){
 		promoSquares[i] = new Square(i * SIZE, 0);
 	}
 
-	promoSquares[0]->piece = new Piece(QUEEN | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteQueen.png") : IMG_LoadTexture(rend, "img/blackQueen.png"), 0);
-	promoSquares[1]->piece = new Piece(ROOK | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteRook.png") : IMG_LoadTexture(rend, "img/blackRook.png"), 0);
-	promoSquares[2]->piece = new Piece(BISHOP | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteBishop.png") : IMG_LoadTexture(rend, "img/blackBishop.png"), 0);
-	promoSquares[3]->piece = new Piece(KNIGHT | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteKnight.png") : IMG_LoadTexture(rend, "img/blackKnight.png"), 0);
+	promoSquares[0]->piece = new Piece(QUEEN | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteQueen.png") : IMG_LoadTexture(rend, "img/blackQueen.png"), 0, 0, 0);
+	promoSquares[1]->piece = new Piece(ROOK | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteRook.png") : IMG_LoadTexture(rend, "img/blackRook.png"), 0, 0, 0);
+	promoSquares[2]->piece = new Piece(BISHOP | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteBishop.png") : IMG_LoadTexture(rend, "img/blackBishop.png"), 0, 0, 0);
+	promoSquares[3]->piece = new Piece(KNIGHT | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteKnight.png") : IMG_LoadTexture(rend, "img/blackKnight.png"), 0, 0, 0);
 
 	for(int i = 0; i < 4; i++){
 		SDL_RenderCopy(rend, promoSquare[i]->piece->pieceImg, NULL, &(promoSquares[i]->rect));
@@ -217,6 +220,7 @@ uint8_t promoWindow(int color){
 				case SDL_MOUSEBUTTONDOWN:
 					for(int i = 0; i < 4; i++){
 						SDL_DestroyTexture(promoSquares[i]->piece->pieceImg);
+						delete promoSquares[i]->piece;
 						delete promoSquares[i];
 					}
 					delete [] promoSquares;
@@ -239,7 +243,6 @@ uint8_t promoWindow(int color){
 	}
 }
 
-/*Stopped refactoring the square change here still needs to be done with piece.cpp*/
 int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	SDL_Event event;
@@ -260,9 +263,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	int pieceSelectedY = 0;
 
-	Board board;
-
-	board.pieces = fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", rend, &color);
+	Board board = fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", rend, &color);
 	
 	while(running){
 		while(SDL_PollEvent(&event)){
@@ -275,7 +276,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 						pieceSelectedState = 1;
 						pieceSelectedX = event.button.x / 100;
 						pieceSelectedY = event.button.y / 100;
-						pieceSelected = board.pieces[pieceSelectedX][pieceSelectedY]; 
+						pieceSelected = board.squares[pieceSelectedX][pieceSelectedY].piece; 
 					}
 					else{
 						pieceSelectedState = 2;
@@ -292,7 +293,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 			if((pieceSelected->pieceID & 0b00111) == PAWN && (pieceSelectedY == 7 || pieceSelectedY == 0)){
 				promoChoice = promoWindow(color);
 			}
-			isMoveLegal = pieceSelected->move(&board, board.pieces[pieceSelectedX][pieceSelectedY], color, promoChoice, rend);
+			isMoveLegal = pieceSelected->move(&board, board.squares[pieceSelectedX][pieceSelectedY].piece, color, promoChoice, rend);
 			pieceSelectedState = 0;
 		}
 
@@ -311,7 +312,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 		}
 
 		
-		if(pieceSelectedState == 1 && board.pieces[pieceSelectedX][pieceSelectedY]->pieceID != 0){
+		if(pieceSelectedState == 1 && board.squares[pieceSelectedX][pieceSelectedY].piece->pieceID != 0){
 			highlightSelectedPiece(pixels, pieceSelectedX * 100, pieceSelectedY * 100);	
 		}
 		else{
@@ -324,7 +325,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 		for(int i = 0; i < ROWS; i++){
 			for(int j = 0; j < COLLUMNS; j++){
 				if(board.pieces[i][j]->pieceID != 0){
-					SDL_RenderCopy(rend, board.pieces[i][j]->pieceImg, NULL, &(board.pieces[i][j]->rect));
+					SDL_RenderCopy(rend, board.squares[i][j].piece->pieceImg, NULL, &(board.squares[i][j].rect));
 				}
 			}
 		}
