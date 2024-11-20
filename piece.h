@@ -27,6 +27,8 @@
 #define KINGSIDECASTLE 0b1000000
 #define QUEENSIDECASTLE 0b10000000
 
+class Board;
+
 class Move{
 	public:
 		int file;
@@ -41,22 +43,42 @@ class Piece {
 		uint8_t pieceID;
 		SDL_Texture *pieceImg;
 		uint8_t statusFlag;	//will be used for things like castle and en pasente
-		SDL_Rect rect;
-		Piece[27] *attackedSquares;	//27 is the most squares one piece can attack 
+		Piece *attackedSquares[27];	//27 is the most squares one piece can attack 
 	
-		Piece(int xPos, int yPos);
-		Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int xPos, int yPos);
+		Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon);
 
-		void squaresAttacked(Piece ***board);
-		Move **piecesLegalMoves(Piece ***board);
-		int move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend);
+		void squaresAttacked(Board *board);
+		Move **piecesLegalMoves(Board *board);
+		int move(Board *board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend);
 
 		
 };
 
+class Square{
+	public:
+		Piece *piece;
+		SDL_Rect rect;
+};
+
+class Board{
+	public:
+		Piece *whiteKing;
+		Piece *blackKing;
+		Piece *whitePieces[17];	//max of 16 white pieces can be on board + 1 for NULL
+		Piece *blackPieces[17];	//max of 16 black pieces can be on board + 1 for NULL	
+
+		Square squares[8][8];
+
+		Piece ***pieces;
+
+		Board();
+
+		int isInCheck(uint8_t color, Piece *targetSquare);
+};
+
 void freeLegalMoves(Move **legalMoves);
-void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank, int ver, int hor);
-void knightMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
-void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
-void kingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void slidingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank, int ver, int hor);
+void knightMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void pawnMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
+void kingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank);
 #endif

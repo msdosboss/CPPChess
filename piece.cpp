@@ -13,29 +13,34 @@ void freeLegalMoves(Move **legalMoves){
 	}
 }
 
-Piece::Piece(int xPos, int yPos){
-	pieceID = 0;
-	pieceImg = NULL;
-	statusFlag = 0;
-	rect = {(int) xPos, (int) yPos, SIZE, SIZE};
+Square::Square(int xPos, int yPos){
+	piece = NULL;
+	rect = {(int) SIZE * i, (int) SIZE * j, SIZE, SIZE};
 }
 
-
-Piece::Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int xPos, int yPos){
+Piece::Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon){
 	pieceID = pieceIDCon;
 	pieceImg = pieceImgCon;
 	statusFlag = statusFlagCon;	
-	rect = {(int) xPos, (int) yPos, SIZE, SIZE};
 }
 
-void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank, int diagonal, int straight){
+Board::Board(){
+	for(int i = 0; i < 8; i++){
+		for(int j = 0; j < 8; j++){
+			squares[i][j].piece = NULL;
+			squares[i][j].rect = {(int) SIZE * i, (int) SIZE * j, SIZE, SIZE};
+		}
+	}
+}
+
+void slidingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank, int diagonal, int straight){
 	int legalMovesIndex = 0;
 	if(diagonal){
 		for(int i = 1; (i + selectedPieceFile < 8 && i + selectedPieceRank < 8); i++){
-				if(board[selectedPieceFile + i][selectedPieceRank + i]->pieceID == 0){
+				if(board->pieces[selectedPieceFile + i][selectedPieceRank + i]->pieceID == 0){
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + i, selectedPieceRank + i, 0);
 				}
-				else if(((board[selectedPieceFile + i][selectedPieceRank + i]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+				else if(((board->pieces[selectedPieceFile + i][selectedPieceRank + i]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + i, selectedPieceRank + i, 0);
 					break;
 				}
@@ -45,10 +50,10 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 		}
 
 		for(int i = 1; (selectedPieceFile - i >= 0 && i + selectedPieceRank < 8); i++){
-				if(board[selectedPieceFile - i][selectedPieceRank + i]->pieceID == 0){
+				if(board->pieces[selectedPieceFile - i][selectedPieceRank + i]->pieceID == 0){
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - i, selectedPieceRank + i, 0);
 				}
-				else if(((board[selectedPieceFile - i][selectedPieceRank + i]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+				else if(((board->pieces[selectedPieceFile - i][selectedPieceRank + i]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - i, selectedPieceRank + i, 0);
 					break;
 				}
@@ -58,10 +63,10 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 		}
 
 		for(int i = 1; (i + selectedPieceFile < 8 && selectedPieceRank - i >= 0); i++){
-				if(board[selectedPieceFile + i][selectedPieceRank - i]->pieceID == 0){
+				if(board->pieces[selectedPieceFile + i][selectedPieceRank - i]->pieceID == 0){
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + i, selectedPieceRank - i, 0);
 				}
-				else if(((board[selectedPieceFile + i][selectedPieceRank - i]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+				else if(((board->pieces[selectedPieceFile + i][selectedPieceRank - i]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + i, selectedPieceRank - i, 0);
 					break;
 				}
@@ -71,10 +76,10 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 		}
 
 		for(int i = 1; (selectedPieceFile - i >= 0 && selectedPieceRank - i >= 0); i++){
-				if(board[selectedPieceFile - i][selectedPieceRank - i]->pieceID == 0){
+				if(board->pieces[selectedPieceFile - i][selectedPieceRank - i]->pieceID == 0){
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - i, selectedPieceRank - i, 0);
 				}
-				else if(((board[selectedPieceFile - i][selectedPieceRank - i]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+				else if(((board->pieces[selectedPieceFile - i][selectedPieceRank - i]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - i, selectedPieceRank - i, 0);
 					break;
 				}
@@ -87,10 +92,10 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 
 	if(straight){
 		for(int i = 1; selectedPieceFile + i < 8; i++){
-			if(board[selectedPieceFile + i][selectedPieceRank]->pieceID == 0){
+			if(board->pieces[selectedPieceFile + i][selectedPieceRank]->pieceID == 0){
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile  + i, selectedPieceRank, 0);
 			}
-			else if(((board[selectedPieceFile + i][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+			else if(((board->pieces[selectedPieceFile + i][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile  + i, selectedPieceRank, 0);
 				break;
 			}
@@ -100,10 +105,10 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 		}
 
 		for(int i = 1; selectedPieceFile - i >= 0; i++){
-			if(board[selectedPieceFile - i][selectedPieceRank]->pieceID == 0){
+			if(board->pieces[selectedPieceFile - i][selectedPieceRank]->pieceID == 0){
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - i, selectedPieceRank, 0);
 			}
-			else if(((board[selectedPieceFile - i][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+			else if(((board->pieces[selectedPieceFile - i][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - i, selectedPieceRank, 0);
 				break;
 			}
@@ -113,10 +118,10 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 		}
 
 		for(int i = 1; selectedPieceRank + i < 8; i++){
-			if(board[selectedPieceFile][selectedPieceRank + i]->pieceID == 0){
+			if(board->pieces[selectedPieceFile][selectedPieceRank + i]->pieceID == 0){
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank + i, 0);
 			}
-			else if(((board[selectedPieceFile][selectedPieceRank + i]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+			else if(((board->pieces[selectedPieceFile][selectedPieceRank + i]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank + i, 0);
 				break;
 			}
@@ -126,10 +131,10 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 		}
 
 		for(int i = 1; selectedPieceRank - i >= 0; i++){
-			if(board[selectedPieceFile][selectedPieceRank - i]->pieceID == 0){
+			if(board->pieces[selectedPieceFile][selectedPieceRank - i]->pieceID == 0){
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank - i, 0);
 			}
-			else if(((board[selectedPieceFile][selectedPieceRank - i]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
+			else if(((board->pieces[selectedPieceFile][selectedPieceRank - i]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){	//meaing that they are different colors
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank - i, 0);
 				break;
 			}
@@ -142,52 +147,52 @@ void slidingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int 
 	legalMoves[legalMovesIndex] = NULL;
 }
 
-void knightMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank){
+void knightMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank){
 	int legalMovesIndex = 0;
 	if(selectedPieceFile - 2 >= 0 && selectedPieceRank - 1 >= 0){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile - 2][selectedPieceRank - 1]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile - 2][selectedPieceRank - 1]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 2, selectedPieceRank - 1, 0);
 		}
 	}
 
 	if(selectedPieceFile - 1 >= 0 && selectedPieceRank - 2 >= 0){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile - 1][selectedPieceRank - 2]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile - 1][selectedPieceRank - 2]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank - 2, 0);
 		}
 	}
 
 	if(selectedPieceFile - 2 >= 0 && selectedPieceRank + 1 < 8){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile - 2][selectedPieceRank + 1]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile - 2][selectedPieceRank + 1]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 2, selectedPieceRank + 1, 0);
 		}
 	}
 
 	if(selectedPieceFile + 1 < 8 && selectedPieceRank - 2 >= 0){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile + 1][selectedPieceRank - 2]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile + 1][selectedPieceRank - 2]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank - 2, 0);
 		}
 	}
 
 	if(selectedPieceFile + 2 < 8 && selectedPieceRank - 1 >= 0){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile + 2][selectedPieceRank - 1]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile + 2][selectedPieceRank - 1]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 2, selectedPieceRank - 1, 0);
 		}
 	}
 
 	if(selectedPieceFile - 1 >= 0 && selectedPieceRank + 2 < 8){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile - 1][selectedPieceRank + 2]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile - 1][selectedPieceRank + 2]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank + 2, 0);
 		}
 	}
 
 	if(selectedPieceFile + 2 < 8 && selectedPieceRank + 1 < 8){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile + 2][selectedPieceRank + 1]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile + 2][selectedPieceRank + 1]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 2, selectedPieceRank + 1, 0);
 		}
 	}
 
 	if(selectedPieceFile + 1 < 8 && selectedPieceRank + 2 < 8){
-		if((((board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile + 1][selectedPieceRank + 2]->pieceID)) != 1)){
+		if((((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile + 1][selectedPieceRank + 2]->pieceID)) != 1)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank + 2, 0);
 		}
 	}
@@ -195,12 +200,12 @@ void knightMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int s
 	legalMoves[legalMovesIndex] = NULL;
 
 }
-void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank){
+void pawnMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank){
 	int legalMovesIndex = 0;
 
-	if((board[selectedPieceFile][selectedPieceRank]->pieceID & BLACK) != 0){	//black pawns
+	if((board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & BLACK) != 0){	//black pawns
 		for(int i = 1; i < 2 + (selectedPieceRank == 1 ? 1 : 0); i++){
-			if(board[selectedPieceFile][selectedPieceRank + i]->pieceID == 0){
+			if(board->pieces[selectedPieceFile][selectedPieceRank + i]->pieceID == 0){
 				if(selectedPieceRank + i == 7){	//promotion
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank + i, PAWNPROMOQUEENFLAG);	
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank + i, PAWNPROMOROOKFLAG);	
@@ -216,7 +221,7 @@ void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 			}
 		}
 		if(selectedPieceFile + 1 < 8){
-			if((board[selectedPieceFile + 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
+			if((board->pieces[selectedPieceFile + 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
 				if(selectedPieceRank + 1 == 7){
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank + 1, PAWNPROMOQUEENFLAG);	
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank + 1, PAWNPROMOROOKFLAG);
@@ -228,12 +233,12 @@ void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 				}
 			}
 		
-			if(((board[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile + 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
+			if(((board->pieces[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board->pieces[selectedPieceFile + 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank + 1, PAWNENPASFLAG);
 			}
 		}
 		if(selectedPieceFile - 1 >= 0){
-			if((board[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
+			if((board->pieces[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & WHITE) != 0){
 				if(selectedPieceRank + 1 == 7){	
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank + 1, PAWNPROMOQUEENFLAG);	
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank + 1, PAWNPROMOROOKFLAG);
@@ -245,14 +250,14 @@ void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 				}
 			}
 			
-			if(((board[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile - 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
+			if(((board->pieces[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board->pieces[selectedPieceFile - 1][selectedPieceRank]->pieceID & WHITE) != 0){	//EN PASEN
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank + 1, PAWNENPASFLAG);
 			}
 		}
 	}
 	else{	//White Pawns
 		for(int i = 1; i < 2 + (selectedPieceRank == 6 ? 1 : 0); i++){
-			if(board[selectedPieceFile][selectedPieceRank - i]->pieceID == 0){
+			if(board->pieces[selectedPieceFile][selectedPieceRank - i]->pieceID == 0){
 				if(selectedPieceRank - i == 0){	//promotion
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank - i, PAWNPROMOQUEENFLAG);	
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank - i, PAWNPROMOROOKFLAG);
@@ -268,7 +273,7 @@ void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 			}
 		}
 		if(selectedPieceFile + 1 < 8){
-			if((board[selectedPieceFile + 1][selectedPieceRank - 1]->pieceID & BLACK) != 0){
+			if((board->pieces[selectedPieceFile + 1][selectedPieceRank - 1]->pieceID & BLACK) != 0){
 				if(selectedPieceRank - 1 == 0){
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank - 1, PAWNPROMOQUEENFLAG);	
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank - 1, PAWNPROMOROOKFLAG);
@@ -280,13 +285,13 @@ void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 				}
 			}
 			
-			if(((board[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile + 1][selectedPieceRank]->pieceID & BLACK) != 0){	//EN PASEN
+			if(((board->pieces[selectedPieceFile + 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board->pieces[selectedPieceFile + 1][selectedPieceRank]->pieceID & BLACK) != 0){	//EN PASEN
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank - 1, PAWNENPASFLAG);
 			}
 		}
 
 		if(selectedPieceFile - 1 >= 0){
-			if((board[selectedPieceFile - 1][selectedPieceRank - 1]->pieceID & BLACK) != 0){
+			if((board->pieces[selectedPieceFile - 1][selectedPieceRank - 1]->pieceID & BLACK) != 0){
 				if(selectedPieceRank - 1 == 0){
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank - 1, PAWNPROMOQUEENFLAG);	
 					legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank - 1, PAWNPROMOROOKFLAG);
@@ -298,7 +303,7 @@ void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 				}
 			}
 			
-			if(((board[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board[selectedPieceFile - 1][selectedPieceRank]->pieceID & BLACK) != 0){	//EN PASEN
+			if(((board->pieces[selectedPieceFile - 1][selectedPieceRank]->statusFlag & PAWNENPASFLAG) != 0) && (board->pieces[selectedPieceFile - 1][selectedPieceRank]->pieceID & BLACK) != 0){	//EN PASEN
 				legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank - 1, PAWNENPASFLAG);
 			}
 		}
@@ -308,63 +313,63 @@ void pawnMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 
 }
 
-void kingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank){
+void kingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank){
 	int legalMovesIndex = 0;
 	if(selectedPieceFile + 1 < 8 && selectedPieceRank + 1 < 8){
-		if(((board[selectedPieceFile + 1][selectedPieceRank + 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile + 1][selectedPieceRank + 1]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank + 1, 0);
 		}
 	}
 	if(selectedPieceFile + 1 < 8 && selectedPieceRank - 1 >= 0){
-		if(((board[selectedPieceFile + 1][selectedPieceRank - 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile + 1][selectedPieceRank - 1]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank - 1, 0);
 		}
 	}
 
 	if(selectedPieceFile - 1 >= 0 && selectedPieceRank + 1 < 8){
-		if(((board[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile - 1][selectedPieceRank + 1]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank + 1, 0);
 		}
 	}
 
 	if(selectedPieceFile - 1 >= 0 && selectedPieceRank - 1 >= 0){
-		if(((board[selectedPieceFile - 1][selectedPieceRank - 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile - 1][selectedPieceRank - 1]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank - 1, 0);
 		}
 	}
 
 	if(selectedPieceFile + 1 < 8){
-		if(((board[selectedPieceFile + 1][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile + 1][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 1, selectedPieceRank, 0);
 		}
 	}
 
 	if(selectedPieceRank + 1 < 8){
-		if(((board[selectedPieceFile][selectedPieceRank + 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile][selectedPieceRank + 1]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank + 1, 0);
 		}
 	}
 
 	if(selectedPieceFile - 1 >= 0){
-		if(((board[selectedPieceFile - 1][selectedPieceRank]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile - 1][selectedPieceRank]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 1, selectedPieceRank, 0);
 		}
 	}
 
 	if(selectedPieceRank - 1 >= 0){
-		if(((board[selectedPieceFile][selectedPieceRank - 1]->pieceID & 0b11000) & (board[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
+		if(((board->pieces[selectedPieceFile][selectedPieceRank - 1]->pieceID & 0b11000) & (board->pieces[selectedPieceFile][selectedPieceRank]->pieceID & 0b11000)) == 0){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile, selectedPieceRank - 1, 0);
 		}
 	}
 
 	if(selectedPieceFile + 3 < 8){
-		if((board[selectedPieceFile][selectedPieceRank]->statusFlag & CANCASTLE != 0) && (board[selectedPieceFile + 3][selectedPieceRank]->statusFlag & CANCASTLE != 0)){
+		if((board->pieces[selectedPieceFile][selectedPieceRank]->statusFlag & CANCASTLE != 0) && (board->pieces[selectedPieceFile + 3][selectedPieceRank]->statusFlag & CANCASTLE != 0)){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile + 2, selectedPieceRank, KINGSIDECASTLE);
 		}	
 	}
 
 	if(selectedPieceFile - 4 >= 0){
-		if(board[selectedPieceFile][selectedPieceRank]->statusFlag & CANCASTLE && board[selectedPieceFile - 4][selectedPieceRank]->statusFlag & CANCASTLE){
+		if(board->pieces[selectedPieceFile][selectedPieceRank]->statusFlag & CANCASTLE && board->pieces[selectedPieceFile - 4][selectedPieceRank]->statusFlag & CANCASTLE){
 			legalMoves[legalMovesIndex++] = new Move(selectedPieceFile - 2, selectedPieceRank, QUEENSIDECASTLE);
 		}		
 	}
@@ -373,7 +378,34 @@ void kingMoves(Piece ***board, Move **legalMoves, int selectedPieceFile, int sel
 
 }
 
-Move **Piece::piecesLegalMoves(Piece ***board){
+int Board::isInCheck(uint8_t color, Piece *targetSquare){
+	if(color == WHITE){
+		int i = -1;
+		while(blackPieces[++i] != NULL){
+			int j = -1;
+			while(blackPieces[i]->attackedSquares[++j] != NULL){
+				if(blackPieces[i]->attackedSquares[j] == targetSquare){
+					return 1;
+				}
+			}
+		}
+	}
+	else{
+		int i = -1;
+		while(blackPieces[++i] != NULL){
+			int j = -1;
+			while(blackPieces[i]->attackedSquares[++j] != NULL){
+				if(blackPieces[i]->attackedSquares[j] == targetSquare){
+					return 1;
+				}
+			}
+		}
+
+	}
+	return 0;
+}
+
+Move **Piece::piecesLegalMoves(Board *board){
 	Move **legalMoves;
 	
 	uint8_t pieceIDNoColor = pieceID & 0b111;
@@ -427,18 +459,18 @@ Move **Piece::piecesLegalMoves(Piece ***board){
 	return legalMoves;
 }
 
-void Piece::squaresAttacked(Piece ***board){
+void Piece::squaresAttacked(Board *board){
 	Move **legalMoves = piecesLegalMoves(board);
 
 	int i = 0;
 	while(legalMoves[i] != NULL){
-		attackedSquares[i] = board[legalMoves[i]->file][legalMoves[i]->rank];
+		attackedSquares[i] = board->pieces[legalMoves[i]->file][legalMoves[i]->rank];
 	}
 	freeLegalMoves(legalMoves);
 	delete [] legalMoves;
 }
 
-int Piece::move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend){
+int Piece::move(Board *board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend){
 	if((pieceID & color) == 0 || pieceID == 0 || (((pieceID & color) & (moveSquare->pieceID & color)) != 0)){
 		return 0;	//move not legal because it is not your piece, there is no piece, or you are trying to take your own piece
 	}
@@ -457,7 +489,7 @@ int Piece::move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromot
 		if(moveSquareFile == legalMoves[legalMovesIndex]->file && moveSquareRank == legalMoves[legalMovesIndex]->rank){
 			for(int i = 0; i < 8; i++){
 				for(int j = 0; j < 8; j++){
-					board[i][j]->statusFlag &= ~PAWNENPASFLAG;
+					board->pieces[i][j]->statusFlag &= ~PAWNENPASFLAG;
 				}
 			}
 
@@ -510,13 +542,13 @@ int Piece::move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromot
 						pieceImg == NULL;
 						statusFlag = 0;
 
-						board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceID = 0;
-						board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceImg = NULL;
-						board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->statusFlag = 0;
+						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceID = 0;
+						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceImg = NULL;
+						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->statusFlag = 0;
 
-						board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceID = 0;
-						board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceImg = NULL;
-						board[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->statusFlag = 0;
+						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceID = 0;
+						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceImg = NULL;
+						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->statusFlag = 0;
 					
 						break;
 
@@ -613,13 +645,13 @@ int Piece::move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromot
 						pieceImg == NULL;
 						statusFlag = 0;
 				
-						board[rect.x / 100 + 1][rect.y / 100]->pieceID = board[rect.x / 100 + 3][rect.y / 100]->pieceID;
-						board[rect.x / 100 + 1][rect.y / 100]->pieceImg = board[rect.x / 100 + 3][rect.y / 100]->pieceImg;
-						board[rect.x / 100 + 1][rect.y / 100]->statusFlag = board[rect.x / 100 + 3][rect.y / 100]->statusFlag & ~CANCASTLE;
+						board->pieces[rect.x / 100 + 1][rect.y / 100]->pieceID = board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceID;
+						board->pieces[rect.x / 100 + 1][rect.y / 100]->pieceImg = board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceImg;
+						board->pieces[rect.x / 100 + 1][rect.y / 100]->statusFlag = board->pieces[rect.x / 100 + 3][rect.y / 100]->statusFlag & ~CANCASTLE;
 
-						board[rect.x / 100 + 3][rect.y / 100]->pieceID = 0;
-						board[rect.x / 100 + 3][rect.y / 100]->pieceImg = NULL;
-						board[rect.x / 100 + 3][rect.y / 100]->statusFlag = 0;
+						board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceID = 0;
+						board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceImg = NULL;
+						board->pieces[rect.x / 100 + 3][rect.y / 100]->statusFlag = 0;
 
 						break;
 					}
@@ -635,13 +667,13 @@ int Piece::move(Piece ***board, Piece *moveSquare, int color, uint8_t pawnPromot
 						pieceImg == NULL;
 						statusFlag = 0;
 				
-						board[rect.x / 100 - 1][rect.y / 100]->pieceID = board[rect.x / 100 - 4][rect.y / 100]->pieceID;
-						board[rect.x / 100 - 1][rect.y / 100]->pieceImg = board[rect.x / 100 - 4][rect.y / 100]->pieceImg;
-						board[rect.x / 100 - 1][rect.y / 100]->statusFlag = board[rect.x / 100 - 4][rect.y / 100]->statusFlag & ~CANCASTLE;
+						board->pieces[rect.x / 100 - 1][rect.y / 100]->pieceID = board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceID;
+						board->pieces[rect.x / 100 - 1][rect.y / 100]->pieceImg = board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceImg;
+						board->pieces[rect.x / 100 - 1][rect.y / 100]->statusFlag = board->pieces[rect.x / 100 - 4][rect.y / 100]->statusFlag & ~CANCASTLE;
 
-						board[rect.x / 100 - 4][rect.y / 100]->pieceID = 0;
-						board[rect.x / 100 - 4][rect.y / 100]->pieceImg = NULL;
-						board[rect.x / 100 - 4][rect.y / 100]->statusFlag = 0;
+						board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceID = 0;
+						board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceImg = NULL;
+						board->pieces[rect.x / 100 - 4][rect.y / 100]->statusFlag = 0;
 
 						break;
 						
