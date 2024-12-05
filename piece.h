@@ -52,8 +52,6 @@ class Piece {
 
 		void squaresAttacked(Board *board);
 		Move **piecesLegalMoves(Board *board);
-		int move(Board *board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend);
-
 		
 };
 
@@ -77,6 +75,7 @@ class Board{
 		Board();
 
 		int isInCheck(uint8_t color, Piece *targetSquare);
+		int move(Square *selectedSquare, Square *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend);
 };
 
 void freeLegalMoves(Move **legalMoves);

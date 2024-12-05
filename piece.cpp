@@ -476,33 +476,29 @@ void Piece::squaresAttacked(Board *board){
 	freeLegalMoves(legalMoves);
 	delete [] legalMoves;
 }
-/*All code except Piece::move has been refactored to work with the new square class*/
-int Piece::move(Board *board, Piece *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend){
-	if((pieceID & color) == 0 || pieceID == 0 || (((pieceID & color) & (moveSquare->pieceID & color)) != 0)){
+int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend){
+	if((selectedSquare->piece->pieceID & color) == 0 || selectedSquare->piece->pieceID == 0 || (((selectedSquare->piece->pieceID & color) & (moveSquare->piece->pieceID & color)) != 0)){
 		return 0;	//move not legal because it is not your piece, there is no piece, or you are trying to take your own piece
 	}
 
-	Move **legalMoves = piecesLegalMoves(board);
+	Move **legalMoves = selectedSquare->piece->piecesLegalMoves(this);
 
 	if(legalMoves == NULL){
 		return 0;
 	}
 
-	int moveSquareFile = moveSquare->file;
-	int moveSquareRank = moveSquare->rank;
-
 	int legalMovesIndex = 0;
 	while(legalMoves[legalMovesIndex] != NULL){
-		if(moveSquare->file == legalMoves[legalMovesIndex]->file && moveSquare->rank == legalMoves[legalMovesIndex]->rank){
+		if(moveSquare->piece->file == legalMoves[legalMovesIndex]->file && moveSquare->piece->rank == legalMoves[legalMovesIndex]->rank){
 			for(int i = 0; i < 8; i++){
 				for(int j = 0; j < 8; j++){
-					board->squares[i][j].piece->statusFlag &= ~PAWNENPASFLAG;
+					squares[i][j].piece->statusFlag &= ~PAWNENPASFLAG;
 				}
 			}
 
-			if((pieceID & 0b111) == PAWN){
-				if(moveSquare->rank - rank == 2 || moveSquare->rank - rank == -2){
-					statusFlag |= PAWNENPASFLAG;
+			if((selectedPiece->pieceID & 0b111) == PAWN){
+				if(moveSquare->piece->rank - selectedSquare->piece->rank == 2 || moveSquare->piece->rank - selectedSquare->piece->rank == -2){
+					selectedSquare->piece->statusFlag |= PAWNENPASFLAG;
 				}
 				if(legalMoves[legalMovesIndex]->statusFlag & PAWNPROMOQUEENFLAG){
 					while(legalMoves[legalMovesIndex]->statusFlag != pawnPromotionChoice){
@@ -511,25 +507,30 @@ int Piece::move(Board *board, Piece *moveSquare, int color, uint8_t pawnPromotio
 				}
 			}
 
-			if((pieceID & 0b111) == KING){
-				statusFlag &= ~CANCASTLE;
+			if((selectedSquare->piece->pieceID & 0b111) == KING){
+				selectedSquare->piece->statusFlag &= ~CANCASTLE;
 			}
 
-			if((pieceID & 0b111) == ROOK){
-				statusFlag &= ~CANCASTLE;
+			if((selectedSquare->piece->pieceID & 0b111) == ROOK){
+				selectedSquare->piece->statusFlag &= ~CANCASTLE;
 			}
+
+			Piece *inBetweenPiece;	//using inBetweenPiece as a pivot for swapping the 2 pointers
 			if(legalMoves[legalMovesIndex]->statusFlag == 0){
 				//move piece
-				moveSquare->pieceID = pieceID;
-				//SDL_DestroyTexture(moveSquare->pieceImg);
-				moveSquare->pieceImg = pieceImg;
-				moveSquare->statusFlag = statusFlag;
-				
+				inBetweenPiece = moveSquare->piece;	
+				moveSquare->piece = selectedSquare->piece;
+				moveSquare->piece->file = moveSquare->rect.x / 100;
+				moveSquare->piece->rank = moveSquare->rect.y / 100;
+					
 				//remove piece from where it was
-				pieceID = 0;
-				pieceImg == NULL;
-				statusFlag = 0;
-
+				selectedSquare->piece = inBetweenPiece;
+				selectedSquare->piece->pieceID = 0;
+				SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+				selectedSquare->piece->pieceImg = NULL;
+				selectedSquare->piece->statusFlag = 0;
+				selectedSquare->piece->file = selectedSquare->rect.x / 100;
+				selectedSquare->piece->rank = selectedSquare->rect.y / 100;
 
 				freeLegalMoves(legalMoves);
 				delete[] legalMoves;
@@ -539,151 +540,177 @@ int Piece::move(Board *board, Piece *moveSquare, int color, uint8_t pawnPromotio
 				switch(legalMoves[legalMovesIndex]->statusFlag){
 					case PAWNENPASFLAG:{
 						//move piece
-						moveSquare->pieceID = pieceID;
-						SDL_DestroyTexture(moveSquare->pieceImg);
-						moveSquare->pieceImg = pieceImg;
-						moveSquare->statusFlag = statusFlag;
+						inBetweenPiece = moveSquare->piece;
+						moveSquare->piece = selectedSquare->piece;
+						moveSquare->piece->file = moveSquare->rect.x / 100;
+						moveSquare->piece->rank = moveSquare->rect.y / 100;
 						
 						//remove piece from where it was
-						pieceID = 0;
-						pieceImg == NULL;
-						statusFlag = 0;
+						selectedSquare->piece = inBetweenPiece;
+						selectedSquare->piece->pieceID = 0;
+						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+						selectedSquare->piece->pieceImg = NULL;
+						selectedSquare->piece->statusFlag = 0;
+						selectedSquare->piece->file = selectedSquare->rect.x / 100;
+						selectedSquare->piece->rank = selectedSquare->rect.y / 100;
 
-						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceID = 0;
-						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->pieceImg = NULL;
-						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1]->statusFlag = 0;
+						squares[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1].piece->pieceID = 0;
+						squares[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1].piece->pieceImg = NULL;
+						squares[moveSquare->rect.x / 100][moveSquare->rect.y / 100 + 1].piece->statusFlag = 0;
 
-						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceID = 0;
-						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->pieceImg = NULL;
-						board->pieces[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1]->statusFlag = 0;
-					
+						squares[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1].piece->pieceID = 0;
+						squares[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1].piece->pieceImg = NULL;
+						squares[moveSquare->rect.x / 100][moveSquare->rect.y / 100 - 1].piece->statusFlag = 0;
+	
 						break;
 
 					}
 
 					case PAWNPROMOQUEENFLAG:{
-						moveSquare->pieceID = QUEEN | color;
-						moveSquare->statusFlag = 0;
+						moveSquare->piece->pieceID = QUEEN | color;
+						moveSquare->piece->statusFlag = 0;
+						SDL_DestroyTexture(moveSquare->piece->pieceImg);
 						if(color == WHITE){
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/whiteQueen.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/whiteQueen.png");
 						}
 						else{
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/blackQueen.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/blackQueen.png");
 						}
 
-						pieceID = 0;
-						SDL_DestroyTexture(pieceImg);
-						pieceImg = NULL;
+						selectedSquare->piece->pieceID = 0;
+						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+						selectedSquare->piece->pieceImg = NULL;
 						statusFlag = 0;
 
 						break;
 					}
 
 					case PAWNPROMOROOKFLAG:{
-						moveSquare->pieceID = ROOK | color;
-						moveSquare->statusFlag = 0;
+						moveSquare->piece->pieceID = ROOK | color;
+						moveSquare->piece->statusFlag = 0;
+						SDL_DestroyTexture(moveSquare->piece->pieceImg);
 						if(color == WHITE){
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/whiteRook.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/whiteRook.png");
 						}
 						else{
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/blackRook.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/blackRook.png");
 						}
 
-						pieceID = 0;
-						SDL_DestroyTexture(pieceImg);
-						pieceImg = NULL;
+						selectedSquare->piece->pieceID = 0;
+						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+						selectedSquare->piece->pieceImg = NULL;
 						statusFlag = 0;
 
 						break;
 					}
 
 					case PAWNPROMOBISHOPFLAG:{
-						moveSquare->pieceID = BISHOP | color;
-						moveSquare->statusFlag = 0;
+						moveSquare->piece->pieceID = BISHOP | color;
+						moveSquare->piece->statusFlag = 0;
+						SDL_DestroyTexture(moveSquare->piece->pieceImg);
 						if(color == WHITE){
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/whiteBishop.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/whiteBishop.png");
 						}
 						else{
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/blackBishop.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/blackBishop.png");
 						}
 
-						pieceID = 0;
-						SDL_DestroyTexture(pieceImg);
-						pieceImg = NULL;
+						selectedSquare->piece->pieceID = 0;
+						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+						selectedSquare->piece->pieceImg = NULL;
 						statusFlag = 0;
 
 						break;
+
 					}
 
 					case PAWNPROMOKNIGHTFLAG:{
-						moveSquare->pieceID = KNIGHT | color;
-						moveSquare->statusFlag = 0;
+						moveSquare->piece->pieceID = KNIGHT | color;
+						moveSquare->piece->statusFlag = 0;
+						SDL_DestroyTexture(moveSquare->piece->pieceImg);
 						if(color == WHITE){
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/whiteKnight.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/whiteKnight.png");
 						}
 						else{
-							SDL_DestroyTexture(moveSquare->pieceImg);
-							moveSquare->pieceImg = IMG_LoadTexture(rend, "img/blackKnight.png");
+							moveSquare->piece->pieceImg = IMG_LoadTexture(rend, "img/blackKnight.png");
 						}
 
-						pieceID = 0;
-						SDL_DestroyTexture(pieceImg);
-						pieceImg = NULL;
+						selectedSquare->piece->pieceID = 0;
+						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+						selectedSquare->piece->pieceImg = NULL;
 						statusFlag = 0;
-						
+
 						break;
+
+
 					}
 
 					case KINGSIDECASTLE:{
-						//move piece
-						moveSquare->pieceID = pieceID;
-						moveSquare->pieceImg = pieceImg;
-						moveSquare->statusFlag = statusFlag;
+						//move King
+						inBetweenPiece = moveSquare->piece;	
+						moveSquare->piece = selectedSquare->piece;
+						moveSquare->piece->file = moveSquare->rect.x / 100;
+						moveSquare->piece->rank = moveSquare->rect.y / 100;
+							
+						//remove King from where it was
+						selectedSquare->piece = inBetweenPiece;
+						selectedSquare->piece->pieceID = 0;
+						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+						selectedSquare->piece->pieceImg = NULL;
+						selectedSquare->piece->statusFlag = 0;
+						selectedSquare->piece->file = selectedSquare->rect.x / 100;
+						selectedSquare->piece->rank = selectedSquare->rect.y / 100;
 
-						//remove piece from where it was
-						pieceID = 0;
-						pieceImg == NULL;
-						statusFlag = 0;
-				
-						board->pieces[rect.x / 100 + 1][rect.y / 100]->pieceID = board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceID;
-						board->pieces[rect.x / 100 + 1][rect.y / 100]->pieceImg = board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceImg;
-						board->pieces[rect.x / 100 + 1][rect.y / 100]->statusFlag = board->pieces[rect.x / 100 + 3][rect.y / 100]->statusFlag & ~CANCASTLE;
+						//move Rook
+						inBetweenPiece = squares[selectedSquare->rect.x / 100 + 1][selectedSquare->rect.y / 100].piece;
+						squares[selectedSquare->rect.x / 100 + 1][selectedSquare->rect.y / 100].piece = squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece;
+						squares[selectedSquare->rect.x / 100 + 1][selectedSquare->rect.y / 100].piece->file = selectedSquare->rect.x / 100 + 1;
+						squares[selectedSquare->rect.x / 100 + 1][selectedSquare->rect.y / 100].piece->rank = selectedSquare->rect.y / 100;
 
-						board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceID = 0;
-						board->pieces[rect.x / 100 + 3][rect.y / 100]->pieceImg = NULL;
-						board->pieces[rect.x / 100 + 3][rect.y / 100]->statusFlag = 0;
+						//remove Rook from where it was
+						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece = inBetweenPiece;
+						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100]piece->pieceID = 0;
+						SDL_DestroyTexture(squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->pieceImg);
+						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->pieceImg = NULL;
+						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->statusFlag = 0;
+						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->file = selectedSquare->rect.x / 100 + 3;
+						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->rank = selectedSquare->rect.y / 100;
 
 						break;
 					}
 
 					case QUEENSIDECASTLE:{
-						//move piece
-						moveSquare->pieceID = pieceID;
-						moveSquare->pieceImg = pieceImg;
-						moveSquare->statusFlag = statusFlag;
+						//move King
+						inBetweenPiece = moveSquare->piece;	
+						moveSquare->piece = selectedSquare->piece;
+						moveSquare->piece->file = moveSquare->rect.x / 100;
+						moveSquare->piece->rank = moveSquare->rect.y / 100;
+							
+						//remove King from where it was
+						selectedSquare->piece = inBetweenPiece;
+						selectedSquare->piece->pieceID = 0;
+						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
+						selectedSquare->piece->pieceImg = NULL;
+						selectedSquare->piece->statusFlag = 0;
+						selectedSquare->piece->file = selectedSquare->rect.x / 100;
+						selectedSquare->piece->rank = selectedSquare->rect.y / 100;
 
-						//remove piece from where it was
-						pieceID = 0;
-						pieceImg == NULL;
-						statusFlag = 0;
-				
-						board->pieces[rect.x / 100 - 1][rect.y / 100]->pieceID = board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceID;
-						board->pieces[rect.x / 100 - 1][rect.y / 100]->pieceImg = board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceImg;
-						board->pieces[rect.x / 100 - 1][rect.y / 100]->statusFlag = board->pieces[rect.x / 100 - 4][rect.y / 100]->statusFlag & ~CANCASTLE;
+						//move Rook
+						inBetweenPiece = squares[selectedSquare->rect.x / 100 - 1][selectedSquare->rect.y / 100].piece;
+						squares[selectedSquare->rect.x / 100 - 1][selectedSquare->rect.y / 100].piece = squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece;
+						squares[selectedSquare->rect.x / 100 - 1][selectedSquare->rect.y / 100].piece->file = selectedSquare->rect.x / 100 - 1;
+						squares[selectedSquare->rect.x / 100 - 1][selectedSquare->rect.y / 100].piece->rank = selectedSquare->rect.y / 100;
 
-						board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceID = 0;
-						board->pieces[rect.x / 100 - 4][rect.y / 100]->pieceImg = NULL;
-						board->pieces[rect.x / 100 - 4][rect.y / 100]->statusFlag = 0;
+						//remove Rook from where it was
+						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece = inBetweenPiece;
+						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100]piece->pieceID = 0;
+						SDL_DestroyTexture(squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->pieceImg);
+						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->pieceImg = NULL;
+						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->statusFlag = 0;
+						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->file = selectedSquare->rect.x / 100 - 4;
+						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->rank = selectedSquare->rect.y / 100;
 
-						break;
-						
+						break;					
 					}
 				}
 				freeLegalMoves(legalMoves);
