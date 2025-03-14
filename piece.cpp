@@ -13,9 +13,13 @@ void freeLegalMoves(Move **legalMoves){
 	}
 }
 
+Square::Square(){
+	return;
+}
+
 Square::Square(int xPos, int yPos){
 	piece = NULL;
-	rect = {(int) SIZE * i, (int) SIZE * j, SIZE, SIZE};
+	rect = {(int) SIZE * xPos, (int) SIZE * yPos, SIZE, SIZE};
 }
 
 Piece::Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int fileCon, int rankCon){
@@ -25,6 +29,7 @@ Piece::Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon
 	file = fileCon;
 	rank = rankCon;
 
+}
 
 Piece::Piece(int fileCon, int rankCon){
 	pieceID = 0;
@@ -35,10 +40,11 @@ Piece::Piece(int fileCon, int rankCon){
 }
 
 Board::Board(){
+	squares = new Square*[8];
 	for(int i = 0; i < 8; i++){
+		squares[i] = new Square[8];
 		for(int j = 0; j < 8; j++){
-			squares[i][j].piece = NULL;
-			squares[i][j].rect = {(int) SIZE * i, (int) SIZE * j, SIZE, SIZE};
+			squares[i][j] = Square(i, j);
 		}
 	}
 }
@@ -388,7 +394,7 @@ void kingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selec
 
 }
 
-int Board::isInCheck(uint8_t color, Piece *targetSquare){
+/*int Board::isInCheck(uint8_t color, Piece *targetSquare){
 	if(color == WHITE){
 		int i = -1;
 		while(blackPieces[++i] != NULL){
@@ -413,7 +419,7 @@ int Board::isInCheck(uint8_t color, Piece *targetSquare){
 
 	}
 	return 0;
-}
+}*/
 
 Move **Piece::piecesLegalMoves(Board *board){
 	Move **legalMoves;
@@ -471,7 +477,8 @@ void Piece::squaresAttacked(Board *board){
 
 	int i = 0;
 	while(legalMoves[i] != NULL){
-		attackedSquares[i] = board->pieces[legalMoves[i]->file][legalMoves[i]->rank];
+		attackedSquares[i] = &board->squares[legalMoves[i]->file][legalMoves[i]->rank];
+		i++;
 	}
 	freeLegalMoves(legalMoves);
 	delete [] legalMoves;
@@ -496,7 +503,7 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 				}
 			}
 
-			if((selectedPiece->pieceID & 0b111) == PAWN){
+			if((selectedSquare->piece->pieceID & 0b111) == PAWN){
 				if(moveSquare->piece->rank - selectedSquare->piece->rank == 2 || moveSquare->piece->rank - selectedSquare->piece->rank == -2){
 					selectedSquare->piece->statusFlag |= PAWNENPASFLAG;
 				}
@@ -580,7 +587,7 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 						selectedSquare->piece->pieceID = 0;
 						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
 						selectedSquare->piece->pieceImg = NULL;
-						statusFlag = 0;
+						selectedSquare->piece->statusFlag = 0;
 
 						break;
 					}
@@ -599,7 +606,7 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 						selectedSquare->piece->pieceID = 0;
 						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
 						selectedSquare->piece->pieceImg = NULL;
-						statusFlag = 0;
+						selectedSquare->piece->statusFlag = 0;
 
 						break;
 					}
@@ -618,7 +625,7 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 						selectedSquare->piece->pieceID = 0;
 						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
 						selectedSquare->piece->pieceImg = NULL;
-						statusFlag = 0;
+						selectedSquare->piece->statusFlag = 0;
 
 						break;
 
@@ -638,7 +645,7 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 						selectedSquare->piece->pieceID = 0;
 						SDL_DestroyTexture(selectedSquare->piece->pieceImg);
 						selectedSquare->piece->pieceImg = NULL;
-						statusFlag = 0;
+						selectedSquare->piece->statusFlag = 0;
 
 						break;
 
@@ -669,7 +676,7 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 
 						//remove Rook from where it was
 						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece = inBetweenPiece;
-						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100]piece->pieceID = 0;
+						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->pieceID = 0;
 						SDL_DestroyTexture(squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->pieceImg);
 						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->pieceImg = NULL;
 						squares[selectedSquare->rect.x / 100 + 3][selectedSquare->rect.y / 100].piece->statusFlag = 0;
@@ -703,7 +710,7 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 
 						//remove Rook from where it was
 						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece = inBetweenPiece;
-						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100]piece->pieceID = 0;
+						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->pieceID = 0;
 						SDL_DestroyTexture(squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->pieceImg);
 						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->pieceImg = NULL;
 						squares[selectedSquare->rect.x / 100 - 4][selectedSquare->rect.y / 100].piece->statusFlag = 0;

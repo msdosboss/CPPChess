@@ -53,8 +53,8 @@ Board fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 		if(FEN[i] >= 0x30 && FEN[i] <= 0x39){
 			for(int j = 0; j < FEN[i] - 0x30; j++){
 				board.squares[file][rank].piece = new Piece(file, rank);
+				file++;
 			}
-			file += FEN[i] - 0x30;
 			i++;
 			continue;
 		}
@@ -129,7 +129,7 @@ Board fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 
 	if(FEN[i] == 'k'){	
 		board.squares[4][0].piece->statusFlag |= CANCASTLE; 	//king will always be in starting location if it can castle
-		board.square[7][0].piece->statusFlag |= CANCASTLE; 	//rook will always be in starting location if it can castle
+		board.squares[7][0].piece->statusFlag |= CANCASTLE; 	//rook will always be in starting location if it can castle
 		i++;
 	}
 
@@ -147,7 +147,7 @@ Board fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 void freeTextures(Board *board){
 	for(int i = 0; i < COLLUMNS; i++){
 		for(int j = 0; j < ROWS; j++){
-			if(board[i][j]->pieceImg != NULL){
+			if(board->squares[i][j].piece->pieceImg != NULL){
 				SDL_DestroyTexture(board->squares[i][j].piece->pieceImg);
 			}
 		}
@@ -209,7 +209,7 @@ uint8_t promoWindow(int color){
 	promoSquares[3]->piece = new Piece(KNIGHT | color, (color == WHITE) ? IMG_LoadTexture(rend, "img/whiteKnight.png") : IMG_LoadTexture(rend, "img/blackKnight.png"), 0, 0, 0);
 
 	for(int i = 0; i < 4; i++){
-		SDL_RenderCopy(rend, promoSquare[i]->piece->pieceImg, NULL, &(promoSquares[i]->rect));
+		SDL_RenderCopy(rend, promoSquares[i]->piece->pieceImg, NULL, &(promoSquares[i]->rect));
 	}
 
 	SDL_RenderPresent(rend);
@@ -253,7 +253,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	Uint32 *pixels = new Uint32[WIDTH * HEIGHT];
 
-	Piece *pieceSelected = NULL;
+	Square *squareSelected = NULL;
 
 	int color;
 
@@ -276,7 +276,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 						pieceSelectedState = 1;
 						pieceSelectedX = event.button.x / 100;
 						pieceSelectedY = event.button.y / 100;
-						pieceSelected = board.squares[pieceSelectedX][pieceSelectedY].piece; 
+						squareSelected = &board.squares[pieceSelectedX][pieceSelectedY]; 
 					}
 					else{
 						pieceSelectedState = 2;
@@ -287,13 +287,13 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 		}
 
 		int isMoveLegal = 0;
-
+	
 		if(pieceSelectedState == 2){
 			uint8_t promoChoice = PAWNPROMOQUEENFLAG;
-			if((pieceSelected->pieceID & 0b00111) == PAWN && (pieceSelectedY == 7 || pieceSelectedY == 0)){
+			if((squareSelected->piece->pieceID & 0b00111) == PAWN && (pieceSelectedY == 7 || pieceSelectedY == 0)){
 				promoChoice = promoWindow(color);
 			}
-			isMoveLegal = pieceSelected->move(&board, board.squares[pieceSelectedX][pieceSelectedY].piece, color, promoChoice, rend);
+			isMoveLegal = board.move(squareSelected, &board.squares[pieceSelectedX][pieceSelectedY], color, promoChoice, rend);
 			pieceSelectedState = 0;
 		}
 
@@ -324,11 +324,14 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 		
 		for(int i = 0; i < ROWS; i++){
 			for(int j = 0; j < COLLUMNS; j++){
-				if(board.pieces[i][j]->pieceID != 0){
+				if(board.squares[i][j].piece->pieceImg != NULL){
 					SDL_RenderCopy(rend, board.squares[i][j].piece->pieceImg, NULL, &(board.squares[i][j].rect));
 				}
 			}
 		}
+		printf("orca\n");
+		fflush(stdout);
+
 		/* Draw to window and loop */
 		//SDL_RenderClear(rend);
 		SDL_RenderPresent(rend);
@@ -342,7 +345,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
 	/* Release resources */
 	SDL_DestroyTexture(boardTexture);
-	freeTextures(board.pieces);
+	freeTextures(&board);
 	SDL_DestroyRenderer(rend);
 	SDL_DestroyWindow(wind);
 	freeBoard(&board);

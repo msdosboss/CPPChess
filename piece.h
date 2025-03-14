@@ -28,6 +28,7 @@
 #define QUEENSIDECASTLE 0b10000000
 
 class Board;
+class Square;
 
 class Move{
 	public:
@@ -45,10 +46,10 @@ class Piece {
 		uint8_t statusFlag;	//will be used for things like castle and en pasente
 		int file;
 		int rank;
-		Piece *attackedSquares[27];	//27 is the most squares one piece can attack 
+		Square *attackedSquares[27];	//27 is the most squares one piece can attack 
 
-		Piece(int fileCon, rankCon);	
 		Piece(uint8_t pieceIDCon, SDL_Texture *pieceImgCon, uint8_t statusFlagCon, int fileCon, int rankCon);
+		Piece(int fileCon, int rankCon);	
 
 		void squaresAttacked(Board *board);
 		Move **piecesLegalMoves(Board *board);
@@ -60,6 +61,7 @@ class Square{
 		Piece *piece;
 		SDL_Rect rect;
 
+		Square();
 		Square(int xPos, int yPos);
 };
 
@@ -70,7 +72,7 @@ class Board{
 		Piece *whitePieces[17];	//max of 16 white pieces can be on board + 1 for NULL
 		Piece *blackPieces[17];	//max of 16 black pieces can be on board + 1 for NULL	
 
-		Square squares[8][8];
+		Square **squares;
 
 		Board();
 
