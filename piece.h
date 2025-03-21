@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cstdint>
 #include <algorithm>
+#include <unordered_map>
+#include <vector>
 #include <SDL.h>
 #include <SDL_image.h>
 
@@ -72,11 +74,17 @@ class Board{
 		Piece *whitePieces[17];	//max of 16 white pieces can be on board + 1 for NULL
 		Piece *blackPieces[17];	//max of 16 black pieces can be on board + 1 for NULL	
 
+		//std::unordered_map<Piece*, std::vector<Piece>> whitePieces
+		//std::unordered_map<Piece*, std::vector<Piece>> blackPieces
+
 		Square **squares;
 
 		Board();
 
-		int isInCheck(uint8_t color, Piece *targetSquare);
+		void addPiece(Piece *pieceToAdd, uint8_t color);
+		int isInCheck(uint8_t color, Square *targetSquare);
+		void squaresAttackedInit();
+		void updateAdjacentAttackSquares(Square *square);
 		int move(Square *selectedSquare, Square *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend);
 };
 

@@ -65,39 +65,53 @@ Board fenToBoard(const char *FEN, SDL_Renderer *rend, int *color){
 				break;
 			case 'r':
 				board.squares[file][rank].piece = new Piece(ROOK | BLACK, IMG_LoadTexture(rend, "img/blackRook.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, BLACK);
 				break;
 			case 'n':
 				board.squares[file][rank].piece = new Piece(KNIGHT | BLACK, IMG_LoadTexture(rend, "img/blackKnight.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, BLACK);
 				break;
 			case 'b':
 				board.squares[file][rank].piece = new Piece(BISHOP | BLACK, IMG_LoadTexture(rend, "img/blackBishop.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, BLACK);
 				break;
 			case 'q':
 				board.squares[file][rank].piece = new Piece(QUEEN | BLACK, IMG_LoadTexture(rend, "img/blackQueen.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, BLACK);
 				break;
 			case 'k':
 				board.squares[file][rank].piece = new Piece(KING | BLACK, IMG_LoadTexture(rend, "img/blackKing.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, BLACK);
+				board.blackKing = board.squares[file][rank].piece;
 				break;
 			case 'p':
 				board.squares[file][rank].piece = new Piece(PAWN | BLACK, IMG_LoadTexture(rend, "img/blackPawn.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, BLACK);
 				break;
 			case 'R':
 				board.squares[file][rank].piece = new Piece(ROOK | WHITE, IMG_LoadTexture(rend, "img/whiteRook.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, WHITE);
 				break;
 			case 'N':
 				board.squares[file][rank].piece = new Piece(KNIGHT | WHITE, IMG_LoadTexture(rend, "img/whiteKnight.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, WHITE);
 				break;
 			case 'B':
 				board.squares[file][rank].piece = new Piece(BISHOP | WHITE, IMG_LoadTexture(rend, "img/whiteBishop.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, WHITE);
 				break;
 			case 'Q':
 				board.squares[file][rank].piece = new Piece(QUEEN | WHITE, IMG_LoadTexture(rend, "img/whiteQueen.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, WHITE);
 				break;
 			case 'K':
 				board.squares[file][rank].piece = new Piece(KING | WHITE, IMG_LoadTexture(rend, "img/whiteKing.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, WHITE);
+				board.whiteKing = board.squares[file][rank].piece;
 				break;
 			case 'P':
 				board.squares[file][rank].piece = new Piece(PAWN | WHITE, IMG_LoadTexture(rend, "img/whitePawn.png"), 0, file, rank);
+				board.addPiece(board.squares[file][rank].piece, WHITE);
 				break;
 				
 		}
@@ -158,7 +172,9 @@ void freeBoard(Board *board){
 	for(int i = 0; i < COLLUMNS; i++){
 		for(int j = 0; j < ROWS; j++){
 			delete board->squares[i][j].piece;
+			//delete board->squares[i][j];
 		}
+		delete board->squares[i];
 	}
 }
 
@@ -264,6 +280,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 	int pieceSelectedY = 0;
 
 	Board board = fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", rend, &color);
+
+	board.squaresAttackedInit();
 	
 	while(running){
 		while(SDL_PollEvent(&event)){
@@ -329,8 +347,6 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 				}
 			}
 		}
-		printf("orca\n");
-		fflush(stdout);
 
 		/* Draw to window and loop */
 		//SDL_RenderClear(rend);

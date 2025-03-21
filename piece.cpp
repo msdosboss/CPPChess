@@ -47,6 +47,8 @@ Board::Board(){
 			squares[i][j] = Square(i, j);
 		}
 	}
+	whitePieces[0] = NULL;
+	blackPieces[0] = NULL;
 }
 
 void slidingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank, int diagonal, int straight){
@@ -329,6 +331,21 @@ void pawnMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selec
 
 }
 
+void Board::addPiece(Piece *pieceToAdd, uint8_t color){
+	if(color == WHITE){
+		int i = 0;
+		for(; whitePieces[i] != NULL; i++);
+		whitePieces[i] = pieceToAdd;
+		whitePieces[i + 1] = NULL;
+	}
+	else{
+		int i = 0;
+		for(; blackPieces[i] != NULL; i++);
+		blackPieces[i] = pieceToAdd;
+		blackPieces[i + 1] = NULL;
+	}
+}
+
 void kingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selectedPieceRank){
 	int legalMovesIndex = 0;
 	if(selectedPieceFile + 1 < 8 && selectedPieceRank + 1 < 8){
@@ -394,7 +411,7 @@ void kingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selec
 
 }
 
-/*int Board::isInCheck(uint8_t color, Piece *targetSquare){
+int Board::isInCheck(uint8_t color, Square *targetSquare){
 	if(color == WHITE){
 		int i = -1;
 		while(blackPieces[++i] != NULL){
@@ -408,18 +425,17 @@ void kingMoves(Board *board, Move **legalMoves, int selectedPieceFile, int selec
 	}
 	else{
 		int i = -1;
-		while(blackPieces[++i] != NULL){
+		while(whitePieces[++i] != NULL){
 			int j = -1;
-			while(blackPieces[i]->attackedSquares[++j] != NULL){
-				if(blackPieces[i]->attackedSquares[j] == targetSquare){
+			while(whitePieces[i]->attackedSquares[++j] != NULL){
+				if(whitePieces[i]->attackedSquares[j] == targetSquare){
 					return 1;
 				}
 			}
 		}
-
 	}
 	return 0;
-}*/
+}
 
 Move **Piece::piecesLegalMoves(Board *board){
 	Move **legalMoves;
@@ -480,9 +496,108 @@ void Piece::squaresAttacked(Board *board){
 		attackedSquares[i] = &board->squares[legalMoves[i]->file][legalMoves[i]->rank];
 		i++;
 	}
+	attackedSquares[i] == NULL;
 	freeLegalMoves(legalMoves);
 	delete [] legalMoves;
 }
+
+void Board::squaresAttackedInit(){
+	for(int i = 0; i < 8; i++){
+		for(int j = 0; j < 8; j++){
+			if(squares[i][j].piece->pieceID != 0){
+				squares[i][j].piece->squaresAttacked(this);
+			}
+		}
+	}
+}
+
+void Board::updateAdjacentAttackSquares(Square *square){	//square is the square that a piece just moved from
+
+	int file = square->piece->file;
+	int rank = square->piece->rank;
+
+	for(int i = file; i < 8; i++){	//right
+		if(squares[i][rank].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[i][rank].piece->pieceID & 0b111) == KING || (squares[i][rank].piece->pieceID & 0b111) == KNIGHT || (squares[i][rank].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[i][rank].piece->squaresAttacked(this);
+	}
+
+	for(int i = file; i >= 0; i--){	//left
+		if(squares[i][rank].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[i][rank].piece->pieceID & 0b111) == KING || (squares[i][rank].piece->pieceID & 0b111) == KNIGHT || (squares[i][rank].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[i][rank].piece->squaresAttacked(this);
+	}
+
+	for(int i = rank; i < 8; i++){	//up
+		if(squares[file][i].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[file][i].piece->pieceID & 0b111) == KING || (squares[file][i].piece->pieceID & 0b111) == KNIGHT || (squares[file][i].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[file][i].piece->squaresAttacked(this);
+	}
+
+	for(int i = rank; i >= 0; i--){	//down
+		if(squares[file][i].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[file][i].piece->pieceID & 0b111) == KING || (squares[file][i].piece->pieceID & 0b111) == KNIGHT || (squares[file][i].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[file][i].piece->squaresAttacked(this);
+	}
+
+	for(int i = 0; i + file < 8 && i + rank < 8; i++){	//up right
+		if(squares[file + i][rank + i].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[file + i][rank + i].piece->pieceID & 0b111) == KING || (squares[file + i][rank + i].piece->pieceID & 0b111) == KNIGHT || (squares[file + i][rank + i].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[file + i][rank + i].piece->squaresAttacked(this);
+	}
+
+	for(int i = 0; file - i >= 0 && i + rank < 8; i++){	//up left
+		if(squares[file - i][rank + i].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[file - i][rank + i].piece->pieceID & 0b111) == KING || (squares[file - i][rank + i].piece->pieceID & 0b111) == KNIGHT || (squares[file - i][rank + i].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[file - i][rank + i].piece->squaresAttacked(this);
+	}
+
+	for(int i = 0; i + file < 8 && rank - i >= 0; i++){	//down right
+		if(squares[file + i][rank - i].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[file + i][rank - i].piece->pieceID & 0b111) == KING || (squares[file + i][rank - i].piece->pieceID & 0b111) == KNIGHT || (squares[file + i][rank - i].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[file + i][rank - i].piece->squaresAttacked(this);
+	}
+
+	for(int i = 0; file - i >= 0 && rank - i >= 0; i++){	//down left
+		if(squares[file - i][rank - i].piece->pieceID == 0){
+			continue;
+		}
+		if((squares[file - i][rank - i].piece->pieceID & 0b111) == KING || (squares[file - i][rank - i].piece->pieceID & 0b111) == KNIGHT || (squares[file - i][rank - i].piece->pieceID & 0b111) == PAWN){
+			break;
+		}
+		squares[file - i][rank - i].piece->squaresAttacked(this);
+	}
+
+}
+
 int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t pawnPromotionChoice, SDL_Renderer *rend){
 	if((selectedSquare->piece->pieceID & color) == 0 || selectedSquare->piece->pieceID == 0 || (((selectedSquare->piece->pieceID & color) & (moveSquare->piece->pieceID & color)) != 0)){
 		return 0;	//move not legal because it is not your piece, there is no piece, or you are trying to take your own piece
@@ -497,6 +612,9 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 	int legalMovesIndex = 0;
 	while(legalMoves[legalMovesIndex] != NULL){
 		if(moveSquare->piece->file == legalMoves[legalMovesIndex]->file && moveSquare->piece->rank == legalMoves[legalMovesIndex]->rank){
+			if((selectedSquare->piece->pieceID & 0b111) == KING && isInCheck(color, moveSquare)){
+				return 0;
+			}
 			for(int i = 0; i < 8; i++){
 				for(int j = 0; j < 8; j++){
 					squares[i][j].piece->statusFlag &= ~PAWNENPASFLAG;
@@ -538,6 +656,8 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 				selectedSquare->piece->statusFlag = 0;
 				selectedSquare->piece->file = selectedSquare->rect.x / 100;
 				selectedSquare->piece->rank = selectedSquare->rect.y / 100;
+			
+				moveSquare->piece->squaresAttacked(this);
 
 				freeLegalMoves(legalMoves);
 				delete[] legalMoves;
@@ -731,7 +851,3 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 	return 0;
 
 }
-
-		
-
-
