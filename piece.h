@@ -54,6 +54,7 @@ class Piece {
 		Piece(int fileCon, int rankCon);	
 
 		void squaresAttacked(Board *board);
+		Move **pawnsAttackSquares(Board *board);
 		Move **piecesLegalMoves(Board *board);
 		
 };

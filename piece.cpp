@@ -416,7 +416,7 @@ int Board::isInCheck(uint8_t color, Square *targetSquare){
 		int i = -1;
 		while(blackPieces[++i] != NULL){
 			int j = -1;
-			while(blackPieces[i]->attackedSquares[++j] != NULL){
+			while(blackPieces[i]->attackedSquares[++j] != NULL){	//I think I want attacked squares to be a hash table where I clear it every time I make a new move and re populate it
 				if(blackPieces[i]->attackedSquares[j] == targetSquare){
 					return 1;
 				}
@@ -488,9 +488,41 @@ Move **Piece::piecesLegalMoves(Board *board){
 	return legalMoves;
 }
 
-void Piece::squaresAttacked(Board *board){
-	Move **legalMoves = piecesLegalMoves(board);
+Move **Piece::pawnsAttackSquares(Board *board){
+	Move **legalMoves = new Move*[3];
+	int i = 0;
+	uint8_t color = (pieceID & 0b11000);
+	if(color == WHITE){
+		if(file != 7){
+			legalMoves[i++] = new Move(file + 1, rank - 1, 0);
+		}
+		if(file != 0){
+			legalMoves[i++] = new Move(file - 1, rank - 1, 0);
+		}
+	}
+	else{
+		if(file != 7){
+			legalMoves[i++] = new Move(file + 1, rank + 1, 0);
+		}
+		if(file != 0){
+			legalMoves[i++] = new Move(file - 1, rank + 1, 0);
+		}
+	}
+	legalMoves[i] = NULL;
+	return legalMoves;
+}
 
+void Piece::squaresAttacked(Board *board){
+
+	Move **legalMoves;
+
+	if((pieceID & 0b111) == PAWN){	//have to do this because pawn movement is different then squares attack unlike another piece
+		legalMoves = pawnsAttackSquares(board);
+	}
+
+	else{
+		legalMoves = piecesLegalMoves(board);
+	}
 	int i = 0;
 	while(legalMoves[i] != NULL){
 		attackedSquares[i] = &board->squares[legalMoves[i]->file][legalMoves[i]->rank];
@@ -658,9 +690,12 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 				selectedSquare->piece->rank = selectedSquare->rect.y / 100;
 			
 				moveSquare->piece->squaresAttacked(this);
+				updateAdjacentAttackSquares(selectedSquare);				
+				updateAdjacentAttackSquares(moveSquare);				
 
 				freeLegalMoves(legalMoves);
 				delete[] legalMoves;
+
 				return 1;
 			}
 			else{
@@ -842,6 +877,9 @@ int Board::move(Square *selectedSquare, Square *moveSquare, int color, uint8_t p
 				}
 				freeLegalMoves(legalMoves);
 				delete[] legalMoves;
+				moveSquare->piece->squaresAttacked(this);
+				updateAdjacentAttackSquares(selectedSquare);				
+				updateAdjacentAttackSquares(moveSquare);				
 				return 1;
 			}
 		}
