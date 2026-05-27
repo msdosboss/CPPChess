@@ -31,16 +31,6 @@ void generateKingAttacks(){
         
         //up left
         attacks |= (b << 7) & ~fileH;
-        //up
-        attacks |= (b << 8);
-        //up right
-        attacks |= (b << 9) & ~fileA;
-        //down left
-        attacks |= (b << 9) & ~fileH;
-        //down
-        attacks |= (b << 8);
-        //down right
-        attacks |= (b << 7) & ~fileA;
 
         kingAttacks[i] = attacks;
     }
@@ -72,39 +62,6 @@ void generateKnightAttacks(){
 
         knightAttacks[i] = attacks;
     }
-}
-
-uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
-    uint64_t b = 1ULL << square;
-    uint64_t squaresAttacked = 0;
-    if(color == WHITE){
-        //Moving forward
-        squaresAttacked |= (b << 8) & ~boardState.occupiedSquares[2]; 
-        if(((b << 8) & ~boardState.occupiedSquares[2]) != 0){
-            squaresAttacked |= (b << 16) & ~(boardState.occupiedSquares[2]);
-        }
-        //capture
-        squaresAttacked |= ((b << 9) & ~fileA) & boardState.occupiedSquares[BLACK];
-        squaresAttacked |= ((b << 7) & ~fileH) & boardState.occupiedSquares[BLACK];
-    }
-    else{
-        //Moving forward
-        squaresAttacked |= (b >> 8) & ~boardState.occupiedSquares[2]; 
-        if(((b >> 8) & ~boardState.occupiedSquares[2]) != 0){
-            squaresAttacked |= (b >> 16) & ~(boardState.occupiedSquares[2]);
-        }
-        //capture
-        squaresAttacked |= ((b >> 9) & ~fileH) & boardState.occupiedSquares[WHITE];
-        squaresAttacked |= ((b >> 7) & ~fileA) & boardState.occupiedSquares[WHITE];
-    }
-    return squaresAttacked;
-}
-
-uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
-    uint64_t b = 1ULL << square;
-    uint64_t squaresAttacked = 0;
-
-    return squaresAttacked;
 }
 
 int fenSquareAdvance(int square, int n){

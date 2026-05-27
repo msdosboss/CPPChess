@@ -1,5 +1,6 @@
 //g++ -o main main.cpp `sdl2-config --cflags --libs` -lSDL2_image
 #include "piece.hpp"
+#include "main.hpp"
 
 #define WIDTH 800
 #define HEIGHT 800
