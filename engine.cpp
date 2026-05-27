@@ -27,7 +27,7 @@ const uint64_t fileH = 0x8080808080808080ULL;
 void generateKingAttacks(){
     for(int i = 0; i < 64; i++){
         uint64_t b = 1ULL << i;
-        uint64_t attacks = 0;
+        uint64_t attacks = 0ULL;
         
         //up left
         attacks |= (b << 7) & ~fileH;
@@ -51,7 +51,7 @@ void generateKnightAttacks(){
 
     for(int i = 0; i < 64; i++){
         uint64_t b = 1ULL << i;
-        uint64_t attacks = 0;
+        uint64_t attacks = 0ULL;
 
         //up 2 right 1
         attacks |= (b << 17) & ~fileA;
@@ -76,7 +76,7 @@ void generateKnightAttacks(){
 
 uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
     uint64_t b = 1ULL << square;
-    uint64_t squaresAttacked = 0;
+    uint64_t squaresAttacked = 0ULL;
     if(color == WHITE){
         //Moving forward
         squaresAttacked |= (b << 8) & ~boardState.occupiedSquares[2]; 
@@ -100,12 +100,133 @@ uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
     return squaresAttacked;
 }
 
-uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
+
+uint64_t generateStraightMoves(BoardState& boardState, int square, int color){
     uint64_t b = 1ULL << square;
-    uint64_t squaresAttacked = 0;
+    uint64_t squaresAttacked = 0ULL;
+
+    int i = 1;
+    //Up
+    while(((b << (8 * i)) & ~boardState.occupiedSquares[color]) != 0){
+        squaresAttacked |= b << (8 * i);
+        //collides into opponents pieces
+        if((b << (8 * i)) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
+    i = 1;
+    //Down
+    while(((b >> (8 * i)) & ~boardState.occupiedSquares[color]) != 0){
+        squaresAttacked |= b >> (8 * i);
+        //collides into opponents pieces
+        if((b >> (8 * i)) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
+    i = 1;
+    //Right
+    while(((b << i) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
+        squaresAttacked |= b << i;
+        //collides into opponents pieces
+        if((b << i) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
+    i = 1;
+    //Left
+    while(((b >> i) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
+        squaresAttacked |= b >> i;
+        //collides into opponents pieces
+        if((b >> i) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
 
     return squaresAttacked;
 }
+
+uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
+    uint64_t b = 1ULL << square;
+    uint64_t squaresAttacked = 0ULL;
+
+    int i = 1;
+    //Up and left
+    while(((b << (7 * i)) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
+        squaresAttacked |= b << (7 * i);
+        //collides into opponents pieces
+        if((b << (7 * i)) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
+    i = 1;
+    //Up and right
+    while(((b << (9 * i)) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
+        squaresAttacked |= b << (9 * i);
+        //collides into opponents pieces
+        if((b << (9 * i)) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
+    i = 1;
+    //Down and right
+    while(((b >> (7 * i)) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
+        squaresAttacked |= b >> (7 * i);
+        //collides into opponents pieces
+        if((b >> (7 * i)) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
+    i = 1;
+    //Down and left
+    while(((b >> (9 * i)) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
+        squaresAttacked |= b >> (9 * i);
+        //collides into opponents pieces
+        if((b >> (9 * i)) & ~boardState.occupiedSquares[2]){
+            break;
+        }
+        i++;
+    }
+
+    return squaresAttacked;
+}
+
+uint64_t generateBishopMoves(BoardState& boardState, int square, int color){
+    uint64_t squaresAttacked = generateDiagnalMoves(boardState, square, color);
+    return squaresAttacked;
+}
+
+uint64_t generateRookMoves(BoardState& boardState, int square, int color){
+    uint64_t squaresAttacked = generateStraightMoves(boardState, square, color);
+    return squaresAttacked;
+}
+
+uint64_t generateQueenMoves(BoardState& boardState, int square, int color){
+    uint64_t squaresAttacked = generateDiagnalMoves(boardState, square, color);
+    squaresAttacked |= generateStraightMoves(boardState, square, color);
+    return squaresAttacked;
+}
+
+uint64_t generateKnightMoves(BoardState& boardState, int square, int color){
+    uint64_t squaresAttacked = knightAttacks[square] & ~boardState.occupiedSquares[color];
+
+    return squaresAttacked;
+    
+}
+
+uint64_t generateKingMoves(BoardState& boardState, int square, int color){
+    uint64_t squaresAttacked = kingAttacks[square] & ~boardState.occupiedSquares[color];
+
+    return squaresAttacked;
+}
+
+
 
 int fenSquareAdvance(int square, int n){
     for(int i = 0; i < n; i++){

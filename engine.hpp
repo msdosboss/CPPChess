@@ -71,5 +71,9 @@ void generateKnightAttacks();
 void generateKingAttacks();
 uint64_t generatePawnMoves(BoardState& boardState, int square, int color);
 uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color);
+uint64_t generateStraightMoves(BoardState& boardState, int square, int color);
+uint64_t generateBishopMoves(BoardState& boardState, int square, int color);
+uint64_t generateRookMoves(BoardState& boardState, int square, int color);
+uint64_t generateQueenMoves(BoardState& boardState, int square, int color);
 
 #endif
