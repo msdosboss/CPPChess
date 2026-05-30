@@ -7,6 +7,8 @@
 
 typedef uint64_t Bitboard;
 
+#define MAXMOVES 218
+
 #define WHITE 0
 #define BLACK 1
 
@@ -32,7 +34,7 @@ union CastlingRights{
 #define DOUBLEMOVE 0b0001
 #define KINGCASTLE 0b0010
 #define QUEENCASTLE 0b0011
-#define CAPTUREMAVE 0b0100
+#define CAPTUREMOVE 0b0100
 #define ENPASSANTCAPTURE 0b0101
 #define KNIGHTPROMO 0b1000
 #define BISHOPPROMO 0b1001
@@ -47,9 +49,14 @@ union Move{
     uint16_t raw;
     struct{
         uint16_t source : 6;
-        uint16_t destination : 6;
+        uint16_t dest : 6;
         uint16_t flags : 4;
     };
+};
+
+struct MoveList{
+    Move moves[MAXMOVES];
+    int count;
 };
 
 struct BoardState {
@@ -75,5 +82,6 @@ uint64_t generateStraightMoves(BoardState& boardState, int square, int color);
 uint64_t generateBishopMoves(BoardState& boardState, int square, int color);
 uint64_t generateRookMoves(BoardState& boardState, int square, int color);
 uint64_t generateQueenMoves(BoardState& boardState, int square, int color);
+MoveList generateMoves(BoardState& boardState, int color);
 
 #endif

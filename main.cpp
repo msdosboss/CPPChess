@@ -16,11 +16,10 @@ SDL_Window *initDisplay(int width, int height, int x, int y, Uint32 flag){
 		return 0;
 	}
 	/* Create a window */
-	SDL_Window* wind = SDL_CreateWindow("Graggle Chess",
-				      x,
-				      y,
-				      width, height, flag);
-	if(!wind){
+	SDL_Window* wind = 
+        SDL_CreateWindow("Graggle Chess", x, y, width, height, flag);
+	
+    if(!wind){
 		printf("Error creating window: %s\n", SDL_GetError());
 		SDL_Quit();
 		return 0;

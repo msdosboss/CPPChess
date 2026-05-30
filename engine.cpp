@@ -110,7 +110,7 @@ uint64_t generateStraightMoves(BoardState& boardState, int square, int color){
     while(((b << (8 * i)) & ~boardState.occupiedSquares[color]) != 0){
         squaresAttacked |= b << (8 * i);
         //collides into opponents pieces
-        if((b << (8 * i)) & ~boardState.occupiedSquares[2]){
+        if((b << (8 * i)) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -120,7 +120,7 @@ uint64_t generateStraightMoves(BoardState& boardState, int square, int color){
     while(((b >> (8 * i)) & ~boardState.occupiedSquares[color]) != 0){
         squaresAttacked |= b >> (8 * i);
         //collides into opponents pieces
-        if((b >> (8 * i)) & ~boardState.occupiedSquares[2]){
+        if((b >> (8 * i)) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -130,7 +130,7 @@ uint64_t generateStraightMoves(BoardState& boardState, int square, int color){
     while(((b << i) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
         squaresAttacked |= b << i;
         //collides into opponents pieces
-        if((b << i) & ~boardState.occupiedSquares[2]){
+        if((b << i) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -140,7 +140,7 @@ uint64_t generateStraightMoves(BoardState& boardState, int square, int color){
     while(((b >> i) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
         squaresAttacked |= b >> i;
         //collides into opponents pieces
-        if((b >> i) & ~boardState.occupiedSquares[2]){
+        if((b >> i) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -158,7 +158,7 @@ uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
     while(((b << (7 * i)) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
         squaresAttacked |= b << (7 * i);
         //collides into opponents pieces
-        if((b << (7 * i)) & ~boardState.occupiedSquares[2]){
+        if((b << (7 * i)) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -168,7 +168,7 @@ uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
     while(((b << (9 * i)) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
         squaresAttacked |= b << (9 * i);
         //collides into opponents pieces
-        if((b << (9 * i)) & ~boardState.occupiedSquares[2]){
+        if((b << (9 * i)) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -178,7 +178,7 @@ uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
     while(((b >> (7 * i)) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
         squaresAttacked |= b >> (7 * i);
         //collides into opponents pieces
-        if((b >> (7 * i)) & ~boardState.occupiedSquares[2]){
+        if((b >> (7 * i)) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -188,7 +188,7 @@ uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
     while(((b >> (9 * i)) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
         squaresAttacked |= b >> (9 * i);
         //collides into opponents pieces
-        if((b >> (9 * i)) & ~boardState.occupiedSquares[2]){
+        if((b >> (9 * i)) & boardState.occupiedSquares[2]){
             break;
         }
         i++;
@@ -226,7 +226,105 @@ uint64_t generateKingMoves(BoardState& boardState, int square, int color){
     return squaresAttacked;
 }
 
+MoveList generateMoves(BoardState& boardState, int color){
+    MoveList moveList;
+    moveList.count = 0;
 
+    for(int pieceType = PAWN; pieceType <= KING; pieceType++){
+        Bitboard pieceBoard = boardState.pieces[color][pieceType]; 
+        while(pieceBoard != 0){
+            //Find index of piece
+            int sourceSquare = __builtin_ctzll(pieceBoard);
+            if(pieceType != PAWN){
+                Bitboard attackBoard;
+                switch(pieceType){
+                    case BISHOP:
+                        attackBoard = generateBishopMoves(boardState, sourceSquare, color);
+                        break;
+                    case KNIGHT:
+                        attackBoard = generateKnightMoves(boardState, sourceSquare, color);
+                        break;
+                    case ROOK:
+                        attackBoard = generateRookMoves(boardState, sourceSquare, color);
+                        break;
+                    case QUEEN:
+                        attackBoard = generateQueenMoves(boardState, sourceSquare, color);
+                        break;
+                    case KING:
+                        attackBoard = generateKingMoves(boardState, sourceSquare, color);
+                        break;
+                }
+                while(attackBoard != 0){
+                    int destSquare = __builtin_ctzll(attackBoard);
+
+                    moveList.moves[moveList.count].raw = 0;
+                    moveList.moves[moveList.count].source = sourceSquare;
+                    moveList.moves[moveList.count].dest = destSquare;
+                    //Im using the entire board because I trust that generate
+                    //moves will not give me moves to allie squares
+                    if(isOccupied(boardState.occupiedSquares[2], destSquare)){
+                        moveList.moves[moveList.count].flags = CAPTUREMOVE;
+                    }
+
+                    moveList.count++;
+                    clearBit(attackBoard, destSquare);
+                }
+                
+            }
+            //Seperating the pawn since it has a lot of special moves
+            else{
+                Bitboard attackBoard = generatePawnMoves(boardState, sourceSquare, color);
+                while(attackBoard != 0){
+                    int destSquare = __builtin_ctzll(attackBoard);
+
+                    moveList.moves[moveList.count].raw = 0;
+                    moveList.moves[moveList.count].source = sourceSquare;
+                    moveList.moves[moveList.count].dest = destSquare;
+                    //Double Move detection
+                    if(abs(sourceSquare - destSquare) == 16){
+                        moveList.moves[moveList.count].flags |= DOUBLEMOVE;
+                    
+                    }
+                    //Im using the entire board because I trust that generate
+                    //moves will not give me moves to allies squares
+                    else if(isOccupied(boardState.occupiedSquares[2], destSquare)){
+                        moveList.moves[moveList.count].flags |= CAPTUREMOVE;
+                    }
+                    //If not double Move, Normal Capture or single move it has to be a en passant
+                    else if(destSquare == boardState.enPassantSquare){
+                        moveList.moves[moveList.count].flags |= ENPASSANTCAPTURE;
+                    
+                    }
+                    //Pawn Promotion
+                    if(destSquare < 8 || destSquare > 55){
+                        moveList.moves[moveList.count].flags |= QUEENPROMO;
+                        uint8_t isCapture = moveList.moves[moveList.count].flags & CAPTUREMOVE;
+                        moveList.count++;
+                        moveList.moves[moveList.count] = moveList.moves[moveList.count - 1];
+                        moveList.moves[moveList.count].flags = isCapture | ROOKPROMO;
+                        moveList.count++;
+                        moveList.moves[moveList.count] = moveList.moves[moveList.count - 1];
+                        moveList.moves[moveList.count].flags = isCapture | BISHOPPROMO;
+                        moveList.count++;
+                        moveList.moves[moveList.count] = moveList.moves[moveList.count - 1];
+                        moveList.moves[moveList.count].flags = isCapture | KNIGHTPROMO;
+                        
+                    }
+
+                    moveList.count++;
+                    clearBit(attackBoard, destSquare);
+                
+                }
+            
+            }
+
+            //Clear of temp bitboard to find next piece
+            clearBit(pieceBoard, sourceSquare);
+        }
+    }
+
+    return moveList;
+}
 
 int fenSquareAdvance(int square, int n){
     for(int i = 0; i < n; i++){
@@ -242,6 +340,109 @@ int fenSquareAdvance(int square, int n){
     return square;
 }
 
+void makeMove(BoardState& boardState, Move move){
+    int pieceType = -1;
+    int destPieceType = -1;
+    int opposingColor = (boardState.sideToMove == WHITE) ? BLACK : WHITE;
+    for(int i = PAWN; i <= KING; i++){
+        if(isOccupied(boardState.pieces[boardState.sideToMove][i], move.source)){
+            pieceType = i;
+        }
+        if(isOccupied(boardState.pieces[boardState.sideToMove][i], move.dest)){
+            destPieceType = i;
+        }
+    }
+    if(pieceType == -1){
+        std::cerr << "Failed to find piece in makeMove";
+        return;
+    }
+    clearBit(boardState.pieces[boardState.sideToMove][pieceType], move.source);
+    boardState.enPassantSquare = 0;
+    switch(move.flags){
+        case QUITEMOVE:
+            setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
+            break;
+            
+        case DOUBLEMOVE:
+            setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
+            if(move.dest < move.source){
+                boardState.enPassantSquare = move.dest + 8;
+            }
+            else{
+                boardState.enPassantSquare = move.dest - 8;
+            }
+            break;
+
+        case KINGCASTLE:
+            setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
+            //Move the h rook to f
+            clearBit(boardState.pieces[boardState.sideToMove][ROOK], move.source + 3);
+            setBit(boardState.pieces[boardState.sideToMove][ROOK], move.source + 1);
+
+            break;
+
+        case QUEENCASTLE:
+            setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
+            //Move the a rook to d
+            clearBit(boardState.pieces[boardState.sideToMove][ROOK], move.source - 4);
+            setBit(boardState.pieces[boardState.sideToMove][ROOK], move.source - 1);
+            break;
+
+        case CAPTUREMOVE:
+            setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
+            clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
+            break;
+
+        case ENPASSANTCAPTURE:
+            setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
+            if(move.dest < move.source){
+                clearBit(boardState.pieces[opposingColor][PAWN], move.dest - 8);
+            }
+            else{
+                clearBit(boardState.pieces[opposingColor][PAWN], move.dest + 8);
+            }
+            break;
+
+        case KNIGHTPROMO:
+            setBit(boardState.pieces[boardState.sideToMove][KNIGHT], move.dest);
+            break;
+
+        case BISHOPPROMO:
+            setBit(boardState.pieces[boardState.sideToMove][BISHOP], move.dest);
+            break;
+
+        case ROOKPROMO:
+            setBit(boardState.pieces[boardState.sideToMove][ROOK], move.dest);
+            break;
+
+        case QUEENPROMO:
+            setBit(boardState.pieces[boardState.sideToMove][QUEEN], move.dest);
+            break;
+
+        case KNIGHTPROMOCAPTURE:
+            setBit(boardState.pieces[boardState.sideToMove][KNIGHT], move.dest);
+            clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
+            break;
+
+        case BISHOPPROMOCAPTURE:
+            setBit(boardState.pieces[boardState.sideToMove][BISHOP], move.dest);
+            clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
+            break;
+
+        case ROOKPROMOCAPTURE:
+            setBit(boardState.pieces[boardState.sideToMove][ROOK], move.dest);
+            clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
+            break;
+
+        case QUEENPROMOCAPTURE:
+            setBit(boardState.pieces[boardState.sideToMove][QUEEN], move.dest);
+            clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
+            break;
+
+    }
+    populateOccupiedSquares(boardState);
+}
+
 void fenToBoardState(const std::string& fen, BoardState& boardState){
     for(int i = 0; i < 6; i++){
         boardState.pieces[WHITE][i] = 0ULL;
@@ -253,7 +454,7 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
     while(fen[i] != ' '){ 
         if(fen[i] == '/'){
             i++;
-            square = fenSquareAdvance(square, fen[i] - 48);
+            square = fenSquareAdvance(square, fen[i] - '0');
             continue;
         }
         switch (fen[i]){
