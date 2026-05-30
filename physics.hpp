@@ -30,7 +30,7 @@ union CastlingRights{
 };
 
 // For Move.flags
-#define QUITEMOVE 0b0000
+#define QUIETMOVE 0b0000
 #define DOUBLEMOVE 0b0001
 #define KINGCASTLE 0b0010
 #define QUEENCASTLE 0b0011
@@ -44,6 +44,11 @@ union CastlingRights{
 #define BISHOPPROMOCAPTURE 0b1101
 #define ROOKPROMOCAPTURE 0b1110
 #define QUEENPROMOCAPTURE 0b1111
+
+//e8
+#define BLACKKINGSTARTSQUARE 60
+//e1
+#define WHITEKINGSTARTSQUARE 4
 
 union Move{
     uint16_t raw;
@@ -71,6 +76,12 @@ struct BoardState {
     int enPassantSquare;
 };
 
+struct UndoState {
+    int capturedPieceType;    // PAWN to QUEEN, or -1 if no capture
+    int enPassantSquare;      // The EP square BEFORE the move was made
+    CastlingRights castling;  // The castling rights BEFORE the move was made
+};
+
 int fenSquareAdvance(int square, int n);
 void fenToBoardState(const std::string& fen, BoardState& boardState);
 void populateOccupiedSquares(BoardState& boardState);
@@ -83,5 +94,7 @@ uint64_t generateBishopMoves(BoardState& boardState, int square, int color);
 uint64_t generateRookMoves(BoardState& boardState, int square, int color);
 uint64_t generateQueenMoves(BoardState& boardState, int square, int color);
 MoveList generateMoves(BoardState& boardState, int color);
+void makeMove(BoardState& boardState, Move move, UndoState& undoState);
+void unmakeMove(BoardState& boardState, Move move, UndoState undoState);
 
 #endif

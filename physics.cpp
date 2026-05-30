@@ -1,4 +1,4 @@
-#include "engine.hpp"
+#include "physics.hpp"
 
 inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}
 inline void clearBit(Bitboard& bb, int square){bb &= ~(1ULL << square);}
@@ -84,8 +84,8 @@ uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
             squaresAttacked |= (b << 16) & ~(boardState.occupiedSquares[2]);
         }
         //capture
-        squaresAttacked |= ((b << 9) & ~fileA) & boardState.occupiedSquares[BLACK];
-        squaresAttacked |= ((b << 7) & ~fileH) & boardState.occupiedSquares[BLACK];
+        squaresAttacked |= ((b << 9) & ~fileA) & (boardState.occupiedSquares[BLACK] | (1ULL << boardState.enPassantSquare));
+        squaresAttacked |= ((b << 7) & ~fileH) & (boardState.occupiedSquares[BLACK] | (1ULL << boardState.enPassantSquare));
     }
     else{
         //Moving forward
@@ -94,8 +94,8 @@ uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
             squaresAttacked |= (b >> 16) & ~(boardState.occupiedSquares[2]);
         }
         //capture
-        squaresAttacked |= ((b >> 9) & ~fileH) & boardState.occupiedSquares[WHITE];
-        squaresAttacked |= ((b >> 7) & ~fileA) & boardState.occupiedSquares[WHITE];
+        squaresAttacked |= ((b >> 9) & ~fileH) & (boardState.occupiedSquares[WHITE] | (1ULL << boardState.enPassantSquare));
+        squaresAttacked |= ((b >> 7) & ~fileA) & (boardState.occupiedSquares[WHITE] | (1ULL << boardState.enPassantSquare));
     }
     return squaresAttacked;
 }
@@ -323,6 +323,31 @@ MoveList generateMoves(BoardState& boardState, int color){
         }
     }
 
+    if(boardState.castlingRights.kingSideCastleBlack){
+        moveList.moves[moveList.count].source = BLACKKINGSTARTSQUARE;
+        //62 = g8
+        moveList.moves[moveList.count].dest = 62;
+        moveList.moves[moveList.count].flags = KINGCASTLE;
+    }
+    if(boardState.castlingRights.queenSideCastleBlack){
+        moveList.moves[moveList.count].source = BLACKKINGSTARTSQUARE;
+        //58 = c8
+        moveList.moves[moveList.count].dest = 58;
+        moveList.moves[moveList.count].flags = QUEENCASTLE;
+    }
+    if(boardState.castlingRights.kingSideCastleWhite){
+        moveList.moves[moveList.count].source = WHITEKINGSTARTSQUARE;
+        //6 = g1
+        moveList.moves[moveList.count].dest = 6;
+        moveList.moves[moveList.count].flags = KINGCASTLE;
+    }
+    if(boardState.castlingRights.queenSideCastleWhite){
+        moveList.moves[moveList.count].source = WHITEKINGSTARTSQUARE;
+        //2 = cj
+        moveList.moves[moveList.count].dest = 2;
+        moveList.moves[moveList.count].flags = QUEENCASTLE;
+    }
+
     return moveList;
 }
 
@@ -340,7 +365,75 @@ int fenSquareAdvance(int square, int n){
     return square;
 }
 
-void makeMove(BoardState& boardState, Move move){
+void unmakeMove(BoardState& boardState, Move move, UndoState undoState){
+    int destPieceType = -1;
+    //This should be the opposite of because they would have just moved 
+    int color = (boardState.sideToMove == WHITE) ? BLACK : WHITE;
+    for(int i = PAWN; i <= KING; i++){
+        if(isOccupied(boardState.pieces[color][i], move.dest)){
+            destPieceType = i;
+        }
+    }
+
+    clearBit(boardState.pieces[color][destPieceType], move.dest);
+    switch(move.flags){
+        case QUIETMOVE:
+        case DOUBLEMOVE:
+            setBit(boardState.pieces[color][destPieceType], move.source);
+            break; 
+
+        case KINGCASTLE:
+            setBit(boardState.pieces[color][destPieceType], move.source);
+            clearBit(boardState.pieces[color][ROOK], move.source + 1);
+            setBit(boardState.pieces[color][ROOK], move.source + 3);
+            break; 
+
+        case QUEENCASTLE:
+            setBit(boardState.pieces[color][destPieceType], move.source);
+            clearBit(boardState.pieces[color][ROOK], move.source - 1);
+            setBit(boardState.pieces[color][ROOK], move.source - 4);
+            break; 
+
+        case CAPTUREMOVE:
+            setBit(boardState.pieces[color][destPieceType], move.source);
+            //Restore the captured piece
+            setBit(boardState.pieces[boardState.sideToMove][undoState.capturedPieceType], move.dest);
+            break; 
+
+        case ENPASSANTCAPTURE:
+            setBit(boardState.pieces[color][destPieceType], move.source);
+            if(color == WHITE){
+                setBit(boardState.pieces[boardState.sideToMove][PAWN], move.dest - 8);
+            }
+            else{
+                setBit(boardState.pieces[boardState.sideToMove][PAWN], move.dest + 8);
+            }
+            break; 
+
+        case KNIGHTPROMO:
+        case BISHOPPROMO:
+        case ROOKPROMO:
+        case QUEENPROMO:
+            setBit(boardState.pieces[color][PAWN], move.source);
+            break; 
+
+        case KNIGHTPROMOCAPTURE:
+        case BISHOPPROMOCAPTURE:
+        case ROOKPROMOCAPTURE:
+        case QUEENPROMOCAPTURE:
+            setBit(boardState.pieces[color][PAWN], move.source);
+            //Restore the captured piece
+            setBit(boardState.pieces[boardState.sideToMove][undoState.capturedPieceType], move.dest);
+            break; 
+    }
+
+    boardState.sideToMove = color;
+    boardState.enPassantSquare = undoState.enPassantSquare;
+    boardState.castlingRights = undoState.castling;
+    populateOccupiedSquares(boardState);
+}
+
+void makeMove(BoardState& boardState, Move move, UndoState& undoState){
     int pieceType = -1;
     int destPieceType = -1;
     int opposingColor = (boardState.sideToMove == WHITE) ? BLACK : WHITE;
@@ -352,14 +445,40 @@ void makeMove(BoardState& boardState, Move move){
             destPieceType = i;
         }
     }
+    undoState.capturedPieceType = destPieceType;
+    undoState.enPassantSquare = boardState.enPassantSquare;
+    undoState.castling = boardState.castlingRights;
     if(pieceType == -1){
         std::cerr << "Failed to find piece in makeMove";
         return;
     }
+    if (pieceType == KING) {
+        if (boardState.sideToMove == WHITE) {
+            boardState.castlingRights.kingSideCastleWhite = 0;
+            boardState.castlingRights.queenSideCastleWhite = 0;
+        } else {
+            boardState.castlingRights.kingSideCastleBlack = 0;
+            boardState.castlingRights.queenSideCastleBlack = 0;
+        }
+    } else if (pieceType == ROOK) {
+        // If a rook moves from its starting square, remove that specific castling right
+        if (move.source == 0){ 
+            boardState.castlingRights.queenSideCastleWhite = 0;
+        }
+        else if(move.source == 7){
+            boardState.castlingRights.kingSideCastleWhite = 0;
+        }
+        else if(move.source == 56){
+            boardState.castlingRights.queenSideCastleBlack = 0; 
+        }
+        else if(move.source == 63){
+            boardState.castlingRights.kingSideCastleBlack = 0;
+        }
+    }
     clearBit(boardState.pieces[boardState.sideToMove][pieceType], move.source);
-    boardState.enPassantSquare = 0;
+    boardState.enPassantSquare = -1;
     switch(move.flags){
-        case QUITEMOVE:
+        case QUIETMOVE:
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
             break;
             
