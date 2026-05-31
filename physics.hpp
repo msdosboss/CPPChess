@@ -82,7 +82,6 @@ struct UndoState {
     CastlingRights castling;  // The castling rights BEFORE the move was made
 };
 
-int fenSquareAdvance(int square, int n);
 void fenToBoardState(const std::string& fen, BoardState& boardState);
 void populateOccupiedSquares(BoardState& boardState);
 void generateKnightAttacks();
@@ -96,5 +95,11 @@ uint64_t generateQueenMoves(BoardState& boardState, int square, int color);
 MoveList generateMoves(BoardState& boardState, int color);
 void makeMove(BoardState& boardState, Move move, UndoState& undoState);
 void unmakeMove(BoardState& boardState, Move move, UndoState undoState);
+bool isSquareAttacked(BoardState& boardState, int square, int attackerColor);
+MoveList generateLegalMoves(BoardState boardState);
+
+inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}
+inline void clearBit(Bitboard& bb, int square){bb &= ~(1ULL << square);}
+inline bool isOccupied(Bitboard bb, int square){return (bb & (1ULL << square)) != 0;}
 
 #endif

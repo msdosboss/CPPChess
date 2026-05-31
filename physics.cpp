@@ -1,9 +1,5 @@
 #include "physics.hpp"
 
-inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}
-inline void clearBit(Bitboard& bb, int square){bb &= ~(1ULL << square);}
-inline bool isOccupied(Bitboard bb, int square){return (bb & (1ULL << square)) != 0;}
-
 Bitboard knightAttacks[64];
 Bitboard kingAttacks[64];
 // Masks to prevent wrapping around the edges
@@ -29,18 +25,16 @@ void generateKingAttacks(){
         uint64_t b = 1ULL << i;
         uint64_t attacks = 0ULL;
         
-        //up left
-        attacks |= (b << 7) & ~fileH;
-        //up
-        attacks |= (b << 8);
-        //up right
-        attacks |= (b << 9) & ~fileA;
-        //down left
-        attacks |= (b << 9) & ~fileH;
-        //down
-        attacks |= (b << 8);
-        //down right
-        attacks |= (b << 7) & ~fileA;
+        attacks |= (b << 7) & ~fileH; // Up-Left
+        attacks |= (b << 8);          // Up
+        attacks |= (b << 9) & ~fileA; // Up-Right
+
+        attacks |= (b >> 1) & ~fileH; // Left
+        attacks |= (b << 1) & ~fileA; // Right
+
+        attacks |= (b >> 9) & ~fileH; // Down-Left
+        attacks |= (b >> 8);          // Down
+        attacks |= (b >> 7) & ~fileA; // Down-Right
 
         kingAttacks[i] = attacks;
     }
@@ -252,7 +246,86 @@ MoveList generateMoves(BoardState& boardState, int color){
                         break;
                     case KING:
                         attackBoard = generateKingMoves(boardState, sourceSquare, color);
-                        break;
+                        int oppColor = (color == WHITE) ? BLACK : WHITE;
+
+                        if (color == WHITE && sourceSquare == 4) { // 4 is e1
+                            // White Kingside (O-O)
+                            if (boardState.castlingRights.kingSideCastleWhite) {
+                                // Check occupancy: f1 (5) and g1 (6) must be empty
+                                if (!isOccupied(boardState.occupiedSquares[2], 5) && 
+                                    !isOccupied(boardState.occupiedSquares[2], 6)) {
+                                    
+                                    // Cannot castle out of check (e1) or through check (f1)
+                                    // The final square (g1) is naturally checked by your generateLegalMoves filter later!
+                                    if (!isSquareAttacked(boardState, 4, oppColor) && 
+                                        !isSquareAttacked(boardState, 5, oppColor)) {
+                                        
+                                        moveList.moves[moveList.count].raw = 0;
+                                        moveList.moves[moveList.count].source = 4;
+                                        moveList.moves[moveList.count].dest = 6;
+                                        moveList.moves[moveList.count].flags = KINGCASTLE;
+                                        moveList.count++;
+                                    }
+                                }
+                            }
+                            // White Queenside (O-O-O)
+                            if (boardState.castlingRights.queenSideCastleWhite) {
+                                // Check occupancy: d1 (3), c1 (2), and b1 (1) must be empty
+                                if (!isOccupied(boardState.occupiedSquares[2], 3) && 
+                                    !isOccupied(boardState.occupiedSquares[2], 2) && 
+                                    !isOccupied(boardState.occupiedSquares[2], 1)) {
+                                    
+                                    // Cannot castle out of check (e1) or through check (d1)
+                                    if (!isSquareAttacked(boardState, 4, oppColor) && 
+                                        !isSquareAttacked(boardState, 3, oppColor)) {
+                                        
+                                        moveList.moves[moveList.count].raw = 0;
+                                        moveList.moves[moveList.count].source = 4;
+                                        moveList.moves[moveList.count].dest = 2;
+                                        moveList.moves[moveList.count].flags = QUEENCASTLE;
+                                        moveList.count++;
+                                    }
+                                }
+                            }
+                        } 
+                        else if (color == BLACK && sourceSquare == 60) { // 60 is e8
+                            // Black Kingside (O-O)
+                            if (boardState.castlingRights.kingSideCastleBlack) {
+                                // Check occupancy: f8 (61) and g8 (62) must be empty
+                                if (!isOccupied(boardState.occupiedSquares[2], 61) && 
+                                    !isOccupied(boardState.occupiedSquares[2], 62)) {
+                                    
+                                    if (!isSquareAttacked(boardState, 60, oppColor) && 
+                                        !isSquareAttacked(boardState, 61, oppColor)) {
+                                        
+                                        moveList.moves[moveList.count].raw = 0;
+                                        moveList.moves[moveList.count].source = 60;
+                                        moveList.moves[moveList.count].dest = 62;
+                                        moveList.moves[moveList.count].flags = KINGCASTLE;
+                                        moveList.count++;
+                                    }
+                                }
+                            }
+                            // Black Queenside (O-O-O)
+                            if (boardState.castlingRights.queenSideCastleBlack) {
+                                // Check occupancy: d8 (59), c8 (58), b8 (57) must be empty
+                                if (!isOccupied(boardState.occupiedSquares[2], 59) && 
+                                    !isOccupied(boardState.occupiedSquares[2], 58) && 
+                                    !isOccupied(boardState.occupiedSquares[2], 57)) {
+                                    
+                                    if (!isSquareAttacked(boardState, 60, oppColor) && 
+                                        !isSquareAttacked(boardState, 59, oppColor)) {
+                                        
+                                        moveList.moves[moveList.count].raw = 0;
+                                        moveList.moves[moveList.count].source = 60;
+                                        moveList.moves[moveList.count].dest = 58;
+                                        moveList.moves[moveList.count].flags = QUEENCASTLE;
+                                        moveList.count++;
+                                    }
+                                }
+                            }
+                        }
+                            break;
                 }
                 while(attackBoard != 0){
                     int destSquare = __builtin_ctzll(attackBoard);
@@ -323,46 +396,66 @@ MoveList generateMoves(BoardState& boardState, int color){
         }
     }
 
-    if(boardState.castlingRights.kingSideCastleBlack){
-        moveList.moves[moveList.count].source = BLACKKINGSTARTSQUARE;
-        //62 = g8
-        moveList.moves[moveList.count].dest = 62;
-        moveList.moves[moveList.count].flags = KINGCASTLE;
-    }
-    if(boardState.castlingRights.queenSideCastleBlack){
-        moveList.moves[moveList.count].source = BLACKKINGSTARTSQUARE;
-        //58 = c8
-        moveList.moves[moveList.count].dest = 58;
-        moveList.moves[moveList.count].flags = QUEENCASTLE;
-    }
-    if(boardState.castlingRights.kingSideCastleWhite){
-        moveList.moves[moveList.count].source = WHITEKINGSTARTSQUARE;
-        //6 = g1
-        moveList.moves[moveList.count].dest = 6;
-        moveList.moves[moveList.count].flags = KINGCASTLE;
-    }
-    if(boardState.castlingRights.queenSideCastleWhite){
-        moveList.moves[moveList.count].source = WHITEKINGSTARTSQUARE;
-        //2 = cj
-        moveList.moves[moveList.count].dest = 2;
-        moveList.moves[moveList.count].flags = QUEENCASTLE;
-    }
-
     return moveList;
 }
 
-int fenSquareAdvance(int square, int n){
-    for(int i = 0; i < n; i++){
-        //Changing rows
-        if((square + 1) % 8 == 7){
-            square -= 15;
-        }
-        else{
-            square++;
-        }
+bool isSquareAttacked(BoardState& boardState, int square, int attackerColor) {
+    int defenderColor = (attackerColor == WHITE) ? BLACK : WHITE;
+    uint64_t b = 1ULL << square;
+
+    if ((knightAttacks[square] & boardState.pieces[attackerColor][KNIGHT]) != 0) return true;
+    if ((kingAttacks[square]   & boardState.pieces[attackerColor][KING])   != 0) return true;
+
+    // Pawns attack diagonally forward
+    if (attackerColor == WHITE) {
+        // White pawns attack "up" the board
+        if (((b >> 9) & ~fileH) & boardState.pieces[WHITE][PAWN]) return true;
+        if (((b >> 7) & ~fileA) & boardState.pieces[WHITE][PAWN]) return true;
+    } else {
+        // Black pawns attack "down" the board
+        if (((b << 9) & ~fileA) & boardState.pieces[BLACK][PAWN]) return true;
+        if (((b << 7) & ~fileH) & boardState.pieces[BLACK][PAWN]) return true;
     }
 
-    return square;
+    //Generate a move from the target square and see if it collides with an enemy slider.
+    if ((generateBishopMoves(boardState, square, defenderColor) &
+        (boardState.pieces[attackerColor][BISHOP] | boardState.pieces[attackerColor][QUEEN])) != 0) return true;
+
+    if ((generateRookMoves(boardState, square, defenderColor) &
+        (boardState.pieces[attackerColor][ROOK] | boardState.pieces[attackerColor][QUEEN])) != 0) return true;
+
+    return false;
+}
+
+MoveList generateLegalMoves(BoardState boardState){
+    MoveList pseudoMoves = generateMoves(boardState, boardState.sideToMove);
+    MoveList legalMoves;
+    legalMoves.count = 0;
+
+    int myColor = boardState.sideToMove;
+    int oppColor = (myColor == WHITE) ? BLACK : WHITE;
+
+    for (int i = 0; i < pseudoMoves.count; i++) {
+        Move move = pseudoMoves.moves[i];
+        UndoState undo;
+
+        //Make the pseudo-legal move
+        makeMove(boardState, move, undo);
+
+        //Find where our king is NOW
+        int myKingSquare = __builtin_ctzll(boardState.pieces[myColor][KING]);
+
+        //If the king is NOT attacked, the move is legal!
+        if (!isSquareAttacked(boardState, myKingSquare, oppColor)) {
+            legalMoves.moves[legalMoves.count] = move;
+            legalMoves.count++;
+        }
+
+        //ALWAYS unmake the move to restore the board for the next iteration
+        unmakeMove(boardState, move, undo);
+    }
+
+    return legalMoves;
 }
 
 void unmakeMove(BoardState& boardState, Move move, UndoState undoState){
@@ -441,7 +534,7 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
         if(isOccupied(boardState.pieces[boardState.sideToMove][i], move.source)){
             pieceType = i;
         }
-        if(isOccupied(boardState.pieces[boardState.sideToMove][i], move.dest)){
+        if(isOccupied(boardState.pieces[opposingColor][i], move.dest)){
             destPieceType = i;
         }
     }
@@ -514,7 +607,7 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
 
         case ENPASSANTCAPTURE:
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
-            if(move.dest < move.source){
+            if(boardState.sideToMove == WHITE){
                 clearBit(boardState.pieces[opposingColor][PAWN], move.dest - 8);
             }
             else{
@@ -560,6 +653,7 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
 
     }
     populateOccupiedSquares(boardState);
+    boardState.sideToMove = boardState.sideToMove == WHITE ? BLACK : WHITE;
 }
 
 void fenToBoardState(const std::string& fen, BoardState& boardState){
@@ -572,8 +666,13 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
     int i = 0;
     while(fen[i] != ' '){ 
         if(fen[i] == '/'){
+            square -= 16;
             i++;
-            square = fenSquareAdvance(square, fen[i] - '0');
+            continue;
+        }
+        if(fen[i] >= '1' && fen[i] <= '8'){
+            square += (fen[i] - '0'); // Skip empty squares
+            i++;
             continue;
         }
         switch (fen[i]){
@@ -581,7 +680,7 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
                 setBit(boardState.pieces[BLACK][ROOK], square);
                 break;
             case 'b':
-                setBit(boardState.pieces[BLACK][ROOK], square);
+                setBit(boardState.pieces[BLACK][BISHOP], square);
                 break;
             case 'n':
                 setBit(boardState.pieces[BLACK][KNIGHT], square);
@@ -615,7 +714,7 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
                 break;
                 
         }
-        square = fenSquareAdvance(square, 1);
+        square++;
         i++;
     }
     populateOccupiedSquares(boardState);
@@ -628,6 +727,7 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
         boardState.sideToMove = BLACK;
     }
     //Skip space
+    i++;
     i++;
     boardState.castlingRights.raw = 0;
     while(fen[i] != ' '){
@@ -645,6 +745,7 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
                 boardState.castlingRights.queenSideCastleBlack = 1;
                 break;
         }
+        i++;
     }
     //Skip space
     i++;
@@ -659,6 +760,7 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
         i += 2;
     }
 }
+
 
 void populateOccupiedSquares(BoardState& boardState){
     for(int i = 0; i < 2; i++){
