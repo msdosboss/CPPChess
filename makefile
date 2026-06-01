@@ -10,8 +10,8 @@ main: main.cpp physics.cpp engineProcess.cpp
 	$(CXX) $(CXXFLAGS) -o main main.cpp physics.cpp engineProcess.cpp evaluate.cpp $(SDL_FLAGS)
 
 # Compile the standalone engine
-engine: engine.cpp
-	$(CXX) $(CXXFLAGS) -o engine engine.cpp physics.cpp
+engine: engine.cpp evaluate.cpp search.cpp physics.cpp
+	$(CXX) $(CXXFLAGS) -o engine engine.cpp physics.cpp evaluate.cpp search.cpp
 
 # Clean up both executables
 clean:

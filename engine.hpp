@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include "physics.hpp"
+#include "search.hpp"
 
 #include <stdlib.h>
 #include <time.h>

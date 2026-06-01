@@ -18,9 +18,11 @@ int main(){
             std::cout << "uciok" << std::endl;
         }
         else if(line == "go"){
-            MoveList legalMoves = generateLegalMoves(boardState);
+            /*MoveList legalMoves = generateLegalMoves(boardState);
             int randMove = rand() % legalMoves.count;
-            Move selectedMove = legalMoves.moves[randMove];
+            Move selectedMove = legalMoves.moves[randMove];*/
+
+            Move selectedMove = searchBestMove(boardState, 5);
             std::string sourceSquare = squareToAlgebraic(selectedMove.source);
             std::string destSquare = squareToAlgebraic(selectedMove.dest);
             std::string strMove= sourceSquare + destSquare;
