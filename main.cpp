@@ -1,5 +1,6 @@
 //g++ -o main main.cpp `sdl2-config --cflags --libs` -lSDL2_image
 #include "main.hpp"
+#include "engineProcess.hpp"
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -141,7 +142,7 @@ uint8_t promoWindow(int color){
     }
 }
 
-int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
+int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EngineProcess& engine){
 
     SDL_Event event;
 
@@ -160,8 +161,13 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
 
     BoardState boardState;
     fenToBoardState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", boardState);
+    perftDivide(boardState, 5);
     //fenToBoardState("r1bqk2r/ppppbppp/2nn4/1B2N3/8/8/PPPP1PPP/RNBQR1K1 w kq - 1 7", boardState);
 
+    bool engineThinking = false;
+    Move moveHistory[MAXMOVESPERGAME];
+    UndoState undoHistory[MAXMOVESPERGAME];
+    int currentMove = 0;
     while(running){
         while(SDL_PollEvent(&event)){
             switch(event.type){
@@ -191,53 +197,94 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
                     }
                     break;
                 }
+                case SDL_KEYDOWN:
+                    switch(event.key.keysym.scancode){
+                        case SDL_SCANCODE_LEFT:
+                            std::cout << "Need to implement go back move" << std::endl;
+                            break;
+                        default:
+                            break;
+                    }
             }
         } 
+        if(boardState.sideToMove == playerColor){
+        
+            if(pieceSelectedState == 2 && destIndex != -1){ // Verify we actually captured a destination
 
-        int isMoveLegal = 0;
-    
-        if(pieceSelectedState == 2 && destIndex != -1){ // Verify we actually captured a destination
+                MoveList legalMoves = generateLegalMoves(boardState);
+                Move matchedMove;
+                matchedMove.raw = 0;
 
-            MoveList legalMoves = generateLegalMoves(boardState);
-            Move matchedMove;
-            matchedMove.raw = 0;
+                for(int i = 0; i < legalMoves.count; i++){
+                    if(legalMoves.moves[i].source == sourceIndex && legalMoves.moves[i].dest == destIndex){
+                        matchedMove = legalMoves.moves[i];
 
-            for(int i = 0; i < legalMoves.count; i++){
-                if(legalMoves.moves[i].source == sourceIndex && legalMoves.moves[i].dest == destIndex){
-                    matchedMove = legalMoves.moves[i];
-
-                    // Handle Promotion Selection
-                    if(matchedMove.flags >= KNIGHTPROMO){
-                        uint8_t promoChoice = promoWindow(boardState.sideToMove);
-                        // Loop forward to find the exact promotion flag they chose
-                        while(i < legalMoves.count && 
-                              legalMoves.moves[i].source == sourceIndex && 
-                              legalMoves.moves[i].dest == destIndex) {
-                            
-                            if(legalMoves.moves[i].flags == promoChoice || 
-                               legalMoves.moves[i].flags == (promoChoice | CAPTUREMOVE)) {
-                                matchedMove = legalMoves.moves[i];
-                                break;
+                        // Handle Promotion Selection
+                        if(matchedMove.flags >= KNIGHTPROMO){
+                            uint8_t promoChoice = promoWindow(boardState.sideToMove);
+                            // Loop forward to find the exact promotion flag they chose
+                            while(i < legalMoves.count && 
+                                  legalMoves.moves[i].source == sourceIndex && 
+                                  legalMoves.moves[i].dest == destIndex) {
+                                
+                                if(legalMoves.moves[i].flags == promoChoice || 
+                                   legalMoves.moves[i].flags == (promoChoice | CAPTUREMOVE)) {
+                                    matchedMove = legalMoves.moves[i];
+                                    break;
+                                }
+                                i++;
                             }
-                            i++;
                         }
+                        break; // Move found and verified
                     }
-                    break; // Move found and verified
                 }
-            }
 
-            // If a valid matching move was found, apply it
-            if(matchedMove.raw != 0){
-                UndoState undo;
-                makeMove(boardState, matchedMove, undo);
+                // If a valid matching move was found, apply it
+                if(matchedMove.raw != 0){
+                    UndoState undo;
+                    makeMove(boardState, matchedMove, undo);
+                    
+                    moveHistory[currentMove] = matchedMove;
+                    undoHistory[currentMove] = undo;
+                    currentMove++;
+                    std::cout << "Evaluation: " << evaluate(boardState) << std::endl;
+                }
                 
-                isMoveLegal = 1;
+                // Reset state variables waiting for the next user click
+                pieceSelectedState = 0;
+                sourceIndex = -1;
+                destIndex = -1;
             }
-            
-            // Reset state variables waiting for the next user click
-            pieceSelectedState = 0;
-            sourceIndex = -1;
-            destIndex = -1;
+        }
+        else{
+            if(!engineThinking){
+                std::string positionCmd = createPositionCmd(boardState, moveHistory, currentMove);
+                engine.sendCommand(positionCmd);
+                engine.sendCommand("go");
+                engineThinking = true;
+            }
+            else if(engine.hasData()){
+                std::string engineResponse = engine.receiveCommand();
+                std::cout << "Engine says: " << engineResponse << std::endl;
+
+                std::istringstream ss(engineResponse);
+                std::string token;
+                //Skip "bestmove"
+                ss >> token;
+                //token equals move ie "e2e4"
+                ss >> token;
+
+                Move engineMove = strMoveToMove(token, boardState);
+
+                //MoveList legalMoves = generateLegalMoves(boardState);
+                UndoState undo;
+                makeMove(boardState, engineMove, undo);
+                moveHistory[currentMove] = engineMove;
+                undoHistory[currentMove] = undo;
+                currentMove++;
+
+                engineThinking = false;
+            }
         }
 
         for(int i = 0; i < WIDTH; i++){
@@ -290,10 +337,43 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend){
     return 0;
 }
 
+std::string createPositionCmd(BoardState& borad, Move moveHistory[], int currentMove){
+    std::string positionCmd = "position startpos";
+    if(currentMove == 0){
+        return positionCmd;
+    }
+    positionCmd += " moves ";
+    int i = 0;
+    while(i < currentMove){
+        std::string sourceSquare = squareToAlgebraic(moveHistory[i].source);
+        std::string destSquare = squareToAlgebraic(moveHistory[i].dest);
+        positionCmd += sourceSquare + destSquare;
+        int flags = moveHistory[i].flags;
+        if(flags == KNIGHTPROMO || flags == KNIGHTPROMOCAPTURE){
+            positionCmd += "n";
+        }
+        else if(flags == BISHOPPROMO || flags == BISHOPPROMOCAPTURE){
+            positionCmd += "b";
+        }
+        else if(flags == ROOKPROMO || flags == ROOKPROMOCAPTURE){
+            positionCmd += "r";
+        }
+        else if(flags == QUEENPROMO || flags == QUEENPROMOCAPTURE){
+            positionCmd += "q";
+        }
+        positionCmd +=  " ";
+        i++;
+    }
+
+    return positionCmd;
+
+}
+
 int main(){ 
     SDL_Window *wind = initDisplay(WIDTH, HEIGHT, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0);
     SDL_Renderer *rend = initRender(wind);
     
+    int playerColor = WHITE;
     initBoardRect(); 
     initTexture(rend);
     
@@ -301,6 +381,19 @@ int main(){
     generateKingAttacks();
     generateKnightAttacks();
 
-    displayLoop(wind, rend);
+    EngineProcess engine("./engine");
+    engine.sendCommand("uci");
+
+    std::string engineResponse;
+    while((engineResponse = engine.receiveCommand()) != "uciok"){
+        if(engineResponse != ""){
+            std::cout << "Engine says: " << engineResponse << std::endl;
+        }
+    
+    }
+    std::cout << "Engine says: " << engineResponse << std::endl;
+    
+
+    displayLoop(wind, rend, playerColor, engine);
     return 0;
 }

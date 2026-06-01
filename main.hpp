@@ -2,12 +2,16 @@
 #define MAIN_HPP
 
 #include "physics.hpp"
+#include "evaluate.hpp"
 
 #include <iostream>
 #include <string>
 #include <cstdint>
+#include <sstream>
 #include <SDL.h>
 #include <SDL_image.h>
+
+#define MAXMOVESPERGAME 1024
 
 #define SIZE 100
 
@@ -20,5 +24,6 @@ public:
 };
 
 void initTexture(SDL_Renderer *rend);
+std::string createPositionCmd(BoardState& borad, Move moveHistory[], int currentMove);
 
 #endif

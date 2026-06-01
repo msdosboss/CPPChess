@@ -7,6 +7,8 @@ const uint64_t fileA = 0x0101010101010101ULL;
 const uint64_t fileB = 0x0202020202020202ULL;
 const uint64_t fileG = 0x4040404040404040ULL;
 const uint64_t fileH = 0x8080808080808080ULL;
+const uint64_t RANK_2 = 0x000000000000FF00ULL;
+const uint64_t RANK_7 = 0x00FF000000000000ULL;
 
 /*
   a  b  c  d  e  f  g  h 
@@ -74,7 +76,7 @@ uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
     if(color == WHITE){
         //Moving forward
         squaresAttacked |= (b << 8) & ~boardState.occupiedSquares[2]; 
-        if(((b << 8) & ~boardState.occupiedSquares[2]) != 0){
+        if(((b << 8) & ~boardState.occupiedSquares[2]) && (b & RANK_2) != 0){
             squaresAttacked |= (b << 16) & ~(boardState.occupiedSquares[2]);
         }
         //capture
@@ -84,7 +86,7 @@ uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
     else{
         //Moving forward
         squaresAttacked |= (b >> 8) & ~boardState.occupiedSquares[2]; 
-        if(((b >> 8) & ~boardState.occupiedSquares[2]) != 0){
+        if(((b >> 8) & ~boardState.occupiedSquares[2]) && (b & RANK_7) != 0){
             squaresAttacked |= (b >> 16) & ~(boardState.occupiedSquares[2]);
         }
         //capture
@@ -568,6 +570,20 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
             boardState.castlingRights.kingSideCastleBlack = 0;
         }
     }
+    if (destPieceType == ROOK) {
+        if (move.dest == 0){ 
+            boardState.castlingRights.queenSideCastleWhite = 0;
+        }
+        else if (move.dest == 7){
+            boardState.castlingRights.kingSideCastleWhite = 0;
+        }
+        else if (move.dest == 56){
+            boardState.castlingRights.queenSideCastleBlack = 0;
+        }
+        else if (move.dest == 63){
+            boardState.castlingRights.kingSideCastleBlack = 0;
+        }
+    }
     clearBit(boardState.pieces[boardState.sideToMove][pieceType], move.source);
     boardState.enPassantSquare = -1;
     switch(move.flags){
@@ -771,4 +787,134 @@ void populateOccupiedSquares(BoardState& boardState){
         boardState.occupiedSquares[BLACK] |= boardState.pieces[BLACK][i];
         boardState.occupiedSquares[2] = boardState.occupiedSquares[WHITE] | boardState.occupiedSquares[BLACK]; 
     }
+}
+
+std::string squareToAlgebraic(int sq) {
+    std::string s = "";
+    s += (char)('a' + (sq % 8));
+    s += (char)('1' + (sq / 8));
+    return s;
+}
+
+uint64_t perft(BoardState& boardState, int depth) {
+    // Base case: If we reached the target depth, this is 1 valid board state
+    if (depth == 0) {
+        return 1ULL;
+    }
+
+    uint64_t nodes = 0;
+    MoveList pseudoMoves = generateMoves(boardState, boardState.sideToMove);
+    int myColor = boardState.sideToMove;
+    int oppColor = (myColor == WHITE) ? BLACK : WHITE;
+
+    for (int i = 0; i < pseudoMoves.count; i++) {
+        Move move = pseudoMoves.moves[i];
+        UndoState undo;
+
+        // 1. Make the pseudo-legal move
+        makeMove(boardState, move, undo);
+
+        // 2. Find our king and verify he wasn't left in check
+        int myKingSquare = __builtin_ctzll(boardState.pieces[myColor][KING]);
+
+        if (!isSquareAttacked(boardState, myKingSquare, oppColor)) {
+            // 3. Move is legal! Recursively step down the tree
+            nodes += perft(boardState, depth - 1);
+        }
+
+        // 4. Restore the board
+        unmakeMove(boardState, move, undo);
+    }
+
+    return nodes;
+}
+
+void perftDivide(BoardState& boardState, int depth) {
+    uint64_t totalNodes = 0;
+    MoveList pseudoMoves = generateMoves(boardState, boardState.sideToMove);
+    int myColor = boardState.sideToMove;
+    int oppColor = (myColor == WHITE) ? BLACK : WHITE;
+
+    std::cout << "--- Perft Divide Depth " << depth << " ---" << std::endl;
+
+    for (int i = 0; i < pseudoMoves.count; i++) {
+        Move move = pseudoMoves.moves[i];
+        UndoState undo;
+
+        makeMove(boardState, move, undo);
+
+        int myKingSquare = __builtin_ctzll(boardState.pieces[myColor][KING]);
+        if (!isSquareAttacked(boardState, myKingSquare, oppColor)) {
+            // Run the recursive perft for this specific move
+            uint64_t nodes = perft(boardState, depth - 1);
+
+            // Print the branch result
+            std::cout << squareToAlgebraic(move.source) << squareToAlgebraic(move.dest)
+                      << ": " << nodes << std::endl;
+
+            totalNodes += nodes;
+        }
+
+        unmakeMove(boardState, move, undo);
+    }
+
+    std::cout << "\nTotal Nodes: " << totalNodes << std::endl;
+}
+
+//move.raw will be 0 if non-valid move
+Move strMoveToMove(const std::string& strMove, BoardState& boardState){
+    Move move;
+    move.raw = 0;
+
+    if(strMove.length() < 4){
+        return move;
+    }
+
+    int srcX = strMove[0] - 'a';
+    int srcY = strMove[1] - '1';
+    int destX = strMove[2] - 'a';
+    int destY = strMove[3] - '1';
+
+    int srcIndex = srcY * 8 + srcX; 
+    int destIndex = destY * 8 + destX;
+
+    // Determine if this is a promotion move
+    uint8_t targetPromoFlag = 0;
+    bool isPromotion = (strMove.length() >= 5);
+
+    if (isPromotion) {
+        char promoChar = strMove[4];
+        if (promoChar == 'q'){ 
+            targetPromoFlag = QUEENPROMO;
+        }
+        else if (promoChar == 'r'){
+            targetPromoFlag = ROOKPROMO;
+        }
+        else if (promoChar == 'b'){
+            targetPromoFlag = BISHOPPROMO;
+        }
+        else if (promoChar == 'n'){
+            targetPromoFlag = KNIGHTPROMO;
+        }
+    }
+
+    MoveList legalMoves = generateLegalMoves(boardState);
+
+    for(int i = 0; i < legalMoves.count; i++){
+        if(legalMoves.moves[i].source == srcIndex && legalMoves.moves[i].dest == destIndex){
+            if(isPromotion){
+                uint8_t moveFlag = legalMoves.moves[i].flags;
+                if(moveFlag == targetPromoFlag || moveFlag == (targetPromoFlag | CAPTUREMOVE)){
+                move = legalMoves.moves[i];
+                break;
+                } 
+            }
+            else{
+                move = legalMoves.moves[i]; 
+                break;
+            }
+        }
+    }
+
+    return move;
 }

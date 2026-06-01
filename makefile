@@ -1,5 +1,18 @@
-all: main.cpp
-	g++ -o main main.cpp physics.cpp `sdl2-config --cflags --libs` -lSDL2_image
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -O3
+SDL_FLAGS = `sdl2-config --cflags --libs` -lSDL2_image
 
+# 'all' is the default target. It tells Make to build both executables.
+all: main engine
+
+# Compile the GUI
+main: main.cpp physics.cpp engineProcess.cpp
+	$(CXX) $(CXXFLAGS) -o main main.cpp physics.cpp engineProcess.cpp evaluate.cpp $(SDL_FLAGS)
+
+# Compile the standalone engine
+engine: engine.cpp
+	$(CXX) $(CXXFLAGS) -o engine engine.cpp physics.cpp
+
+# Clean up both executables
 clean:
-	rm -f main
+	rm -f main engine
