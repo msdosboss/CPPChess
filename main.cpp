@@ -285,8 +285,6 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
                 undoHistory[currentMove] = undo;
                 currentMove++;
 
-                std::cout << boardStateToFen(boardState) << '\n';
-
                 engineThinking = false;
             }
         }
