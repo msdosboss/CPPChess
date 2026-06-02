@@ -62,7 +62,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta){
             if(isSquareAttacked(boardState, kingIndex, BLACK)){
                 //White checkmated
                 //mate in 1 worse then mate in 5
-                return -MATESCORE + depth;
+                return -MATESCORE - depth;
             }
             else{
                 //Draw
@@ -75,7 +75,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta){
             if(isSquareAttacked(boardState, kingIndex, WHITE)){
                 //Black checkmated
                 //mate in 1 worse then mate in 5
-                return MATESCORE - depth;
+                return MATESCORE + depth;
             }
             else{
                 //Draw

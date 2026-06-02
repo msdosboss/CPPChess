@@ -101,6 +101,7 @@ void perftDivide(BoardState& boardState, int depth);
 uint64_t perft(BoardState& boardState, int depth);
 std::string squareToAlgebraic(int sq);
 Move strMoveToMove(const std::string& strMove, BoardState& boardState);
+std::string boardStateToFen(BoardState& boardState);
 
 inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}
 inline void clearBit(Bitboard& bb, int square){bb &= ~(1ULL << square);}

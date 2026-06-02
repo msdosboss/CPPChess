@@ -942,3 +942,78 @@ Move strMoveToMove(const std::string& strMove, BoardState& boardState){
 
     return move;
 }
+
+//2 color 6 pieces
+char fenPiece[2][6] = {
+    {'P', 'B', 'N', 'R', 'Q', 'K'},
+    {'p', 'b', 'n', 'r', 'q', 'k'}
+};
+
+std::string boardStateToFen(BoardState& boardState){
+    std::string fen;
+    for(int y = 7; y >= 0; y--){
+        int skipSquares = 0;
+        for(int x = 0; x < 8; x++){
+            int currentSquare = y * 8 + x;
+            if(isOccupied(boardState.occupiedSquares[2], currentSquare)){
+                int pieceType;
+                int pieceColor;
+                for(int color = WHITE; color <= BLACK; color++){
+                    for(int piece = PAWN; piece <= KING; piece++){
+                        if(isOccupied(boardState.pieces[color][piece], currentSquare)){
+                            pieceType = piece;
+                            pieceColor = color;
+                        
+                        }
+                    } 
+                }
+                if(skipSquares != 0){
+                    fen += std::to_string(skipSquares);
+                    skipSquares = 0;
+                }
+                fen += fenPiece[pieceColor][pieceType];
+            }
+            else{
+                skipSquares++;
+            }
+        }
+        if(skipSquares != 0){
+            fen += std::to_string(skipSquares);
+        }
+        fen += '/';
+        
+    }
+
+    fen += ' ';
+    if(boardState.sideToMove == WHITE){
+        fen += 'w';
+    }
+    else{
+        fen += 'b';
+    }
+    fen += ' ';
+
+    if(boardState.castlingRights.kingSideCastleWhite){
+        fen += 'W'; 
+    }
+    if(boardState.castlingRights.queenSideCastleWhite){
+        fen += 'Q'; 
+    }
+    if(boardState.castlingRights.kingSideCastleBlack){
+        fen += 'k'; 
+    }
+    if(boardState.castlingRights.queenSideCastleBlack){
+        fen += 'q'; 
+    }
+    fen += ' ';
+
+    if(boardState.enPassantSquare == -1){
+        fen += '-';
+    }
+    else{
+        fen += squareToAlgebraic(boardState.enPassantSquare);
+    }
+    fen += ' ';
+
+    return fen;
+}

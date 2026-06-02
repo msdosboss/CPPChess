@@ -163,8 +163,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
 
     BoardState boardState;
     fenToBoardState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", boardState);
-    perftDivide(boardState, 5);
     //fenToBoardState("r1bqk2r/ppppbppp/2nn4/1B2N3/8/8/PPPP1PPP/RNBQR1K1 w kq - 1 7", boardState);
+    perftDivide(boardState, 5);
 
     int clickX, clickY, mappedY;
     bool engineThinking = false;
@@ -285,6 +285,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
                 undoHistory[currentMove] = undo;
                 currentMove++;
 
+                std::cout << boardStateToFen(boardState) << '\n';
+
                 engineThinking = false;
             }
         }
@@ -354,9 +356,10 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     return 0;
 }
 
-std::string createPositionCmd(BoardState& borad, Move moveHistory[], int currentMove){
-    std::string positionCmd = "position startpos";
-    if(currentMove == 0){
+std::string createPositionCmd(BoardState& boardState, Move moveHistory[], int currentMove){
+    std::string positionCmd = "position fen ";
+    positionCmd += boardStateToFen(boardState);
+    /*if(currentMove == 0){
         return positionCmd;
     }
     positionCmd += " moves ";
@@ -380,7 +383,7 @@ std::string createPositionCmd(BoardState& borad, Move moveHistory[], int current
         }
         positionCmd +=  " ";
         i++;
-    }
+    }*/
 
     return positionCmd;
 
