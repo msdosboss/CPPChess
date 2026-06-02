@@ -23,7 +23,7 @@ int main(){
             Move selectedMove = legalMoves.moves[randMove];*/
             int finalEval;
 
-            Move selectedMove = searchBestMove(boardState, 4, finalEval);
+            Move selectedMove = searchBestMove(boardState, 7, finalEval);
             std::string sourceSquare = squareToAlgebraic(selectedMove.source);
             std::string destSquare = squareToAlgebraic(selectedMove.dest);
             std::string strMove= sourceSquare + destSquare;

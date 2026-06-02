@@ -223,14 +223,14 @@ int evaluate(BoardState& boardState){
         scores[WHITE] += __builtin_popcountll(boardState.pieces[WHITE][i]) * pieceValue[i];
         scores[BLACK] += __builtin_popcountll(boardState.pieces[BLACK][i]) * pieceValue[i];
     }
-    int ***squareTables;
+    int *(*squareTables)[6];
     //41700 20000 + 20000 = 40000 both kings 1700 is 17 pieces of material between both sides
     //So I call that endgame
     if(scores[WHITE] + scores[BLACK] < 41700){
-        squareTables = (int***)squareTablesEndGame;
+        squareTables = squareTablesEndGame;
     }
     else{
-        squareTables = (int***)squareTablesMidGame;
+        squareTables = squareTablesMidGame;
     }
 
     for(int i = PAWN; i <= KING; i++){
