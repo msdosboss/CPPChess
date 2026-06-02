@@ -10,6 +10,7 @@
 
 //2 for color and 6 for each piece
 SDL_Texture *pieceTextures[2][6];
+SDL_Texture *dotTexture;
 SDL_Rect board[8][8];
 
 void initTexture(SDL_Renderer *rend){
@@ -25,6 +26,7 @@ void initTexture(SDL_Renderer *rend){
     pieceTextures[BLACK][QUEEN] = IMG_LoadTexture(rend, "img/blackQueen.png");
     pieceTextures[WHITE][KING] = IMG_LoadTexture(rend, "img/whiteKing.png");
     pieceTextures[BLACK][KING] = IMG_LoadTexture(rend, "img/blackKing.png");
+    dotTexture = IMG_LoadTexture(rend, "img/dot.png");
 }
 
 void initBoardRect(){
@@ -164,6 +166,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     perftDivide(boardState, 5);
     //fenToBoardState("r1bqk2r/ppppbppp/2nn4/1B2N3/8/8/PPPP1PPP/RNBQR1K1 w kq - 1 7", boardState);
 
+    int clickX, clickY, mappedY;
     bool engineThinking = false;
     Move moveHistory[MAXMOVESPERGAME];
     UndoState undoHistory[MAXMOVESPERGAME];
@@ -176,9 +179,9 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
                     break;
                 case SDL_MOUSEBUTTONDOWN: {
                     // Calculate the square INSIDE the event loop before the data is lost
-                    int clickX = event.button.x / 100;
-                    int clickY = event.button.y / 100;
-                    int mappedY = 7 - clickY;
+                    clickX = event.button.x / 100;
+                    clickY = event.button.y / 100;
+                    mappedY = 7 - clickY;
                     int clickedIndex = clickX + (mappedY * 8);
 
                     if(!pieceSelectedState){
@@ -247,7 +250,6 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
                     moveHistory[currentMove] = matchedMove;
                     undoHistory[currentMove] = undo;
                     currentMove++;
-                    std::cout << "Evaluation: " << evaluate(boardState) << std::endl;
                 }
                 
                 // Reset state variables waiting for the next user click
@@ -321,6 +323,21 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
                     clearBit(pieceBoard, currentPiece);
                 }
             }
+        }
+        //Want to hightlight the moves of the selected piece
+        if(pieceSelectedState == 1){
+            MoveList legalMoves = generateLegalMoves(boardState);
+            for(int i = 0; i < legalMoves.count; i++){
+                int moveX = legalMoves.moves[i].source % 8;
+                int moveY = legalMoves.moves[i].source / 8;
+                int moveXDst = legalMoves.moves[i].dest % 8;
+                int moveYDst = legalMoves.moves[i].dest / 8;
+                int mappedYDst = 7 - moveYDst;
+                if(moveX == clickX && moveY == mappedY){
+                    SDL_RenderCopy(rend, dotTexture, NULL, &(board[moveXDst][mappedYDst]));
+                }
+            }
+        
         }
 
         /* Draw to window and loop */

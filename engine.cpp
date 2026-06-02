@@ -21,13 +21,14 @@ int main(){
             /*MoveList legalMoves = generateLegalMoves(boardState);
             int randMove = rand() % legalMoves.count;
             Move selectedMove = legalMoves.moves[randMove];*/
+            int finalEval;
 
-            Move selectedMove = searchBestMove(boardState, 5);
+            Move selectedMove = searchBestMove(boardState, 7, finalEval);
             std::string sourceSquare = squareToAlgebraic(selectedMove.source);
             std::string destSquare = squareToAlgebraic(selectedMove.dest);
             std::string strMove= sourceSquare + destSquare;
 
-            std::cout << "bestmove " << strMove << std::endl;
+            std::cout << "bestmove " << strMove << " Score: " << finalEval << std::endl;
         }
         else if(line.find("position") == 0){
             std::istringstream ss(line);

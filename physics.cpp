@@ -101,45 +101,57 @@ uint64_t generateStraightMoves(BoardState& boardState, int square, int color){
     uint64_t b = 1ULL << square;
     uint64_t squaresAttacked = 0ULL;
 
-    int i = 1;
     //Up
-    while(((b << (8 * i)) & ~boardState.occupiedSquares[color]) != 0){
-        squaresAttacked |= b << (8 * i);
-        //collides into opponents pieces
-        if((b << (8 * i)) & boardState.occupiedSquares[2]){
+    uint64_t current = b;
+    while(true){
+        current = (current << 8) & ~boardState.occupiedSquares[color];
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
-    i = 1;
+    current = b;
     //Down
-    while(((b >> (8 * i)) & ~boardState.occupiedSquares[color]) != 0){
-        squaresAttacked |= b >> (8 * i);
-        //collides into opponents pieces
-        if((b >> (8 * i)) & boardState.occupiedSquares[2]){
+    while(true){
+        current = (current >> 8) & ~boardState.occupiedSquares[color];
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
-    i = 1;
+    current = b;
     //Right
-    while(((b << i) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
-        squaresAttacked |= b << i;
-        //collides into opponents pieces
-        if((b << i) & boardState.occupiedSquares[2]){
+    while(true){
+        current = (current << 1) & ~(boardState.occupiedSquares[color] | fileA);
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
-    i = 1;
+    current = b;
     //Left
-    while(((b >> i) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
-        squaresAttacked |= b >> i;
-        //collides into opponents pieces
-        if((b >> i) & boardState.occupiedSquares[2]){
+    while(true){
+        current = (current >> 1) & ~(boardState.occupiedSquares[color] | fileH);
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
 
     return squaresAttacked;
@@ -149,45 +161,57 @@ uint64_t generateDiagnalMoves(BoardState& boardState, int square, int color){
     uint64_t b = 1ULL << square;
     uint64_t squaresAttacked = 0ULL;
 
-    int i = 1;
+    uint64_t current = b;
     //Up and left
-    while(((b << (7 * i)) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
-        squaresAttacked |= b << (7 * i);
-        //collides into opponents pieces
-        if((b << (7 * i)) & boardState.occupiedSquares[2]){
+    while(true){
+        current = (current << 7) & ~(boardState.occupiedSquares[color] | fileH);
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
-    i = 1;
+    current = b;
     //Up and right
-    while(((b << (9 * i)) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
-        squaresAttacked |= b << (9 * i);
-        //collides into opponents pieces
-        if((b << (9 * i)) & boardState.occupiedSquares[2]){
+    while(true){
+        current = (current << 9) & ~(boardState.occupiedSquares[color] | fileA);
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
-    i = 1;
+    current = b;
     //Down and right
-    while(((b >> (7 * i)) & ~(boardState.occupiedSquares[color] | fileA)) != 0){
-        squaresAttacked |= b >> (7 * i);
-        //collides into opponents pieces
-        if((b >> (7 * i)) & boardState.occupiedSquares[2]){
+    while(true){
+        current = (current >> 7) & ~(boardState.occupiedSquares[color] | fileA);
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
-    i = 1;
+    current = b;
     //Down and left
-    while(((b >> (9 * i)) & ~(boardState.occupiedSquares[color] | fileH)) != 0){
-        squaresAttacked |= b >> (9 * i);
-        //collides into opponents pieces
-        if((b >> (9 * i)) & boardState.occupiedSquares[2]){
+    while(true){
+        current = (current >> 9) & ~(boardState.occupiedSquares[color] | fileH);
+        if(current == 0){
             break;
         }
-        i++;
+        squaresAttacked |= current;
+        //collides into opponents pieces
+        if(current & boardState.occupiedSquares[2]){
+            break;
+        }
     }
 
     return squaresAttacked;

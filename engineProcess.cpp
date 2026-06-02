@@ -26,6 +26,7 @@ EngineProcess::EngineProcess(const std::string& enginePath){
 
         execl(enginePath.c_str(), enginePath.c_str(), nullptr);
 
+        std::cerr << "Fatal Error: Failed to launch engine." << std::endl;
         exit(1);
     }
     else{

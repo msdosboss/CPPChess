@@ -1,6 +1,6 @@
 #include "search.hpp"
 
-Move searchBestMove(BoardState& boardState, int depth){
+Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
     MoveList legalMoves = generateLegalMoves(boardState);
     Move bestMove = legalMoves.moves[0];
 
@@ -20,7 +20,11 @@ Move searchBestMove(BoardState& boardState, int depth){
             }
             alpha = std::max(alpha, bestScore);
             unmakeMove(boardState, currentMove, undo);
+            if(beta <= alpha){
+                break;
+            }
         }
+        finalEval = bestScore;
     }
 
     else{
@@ -36,8 +40,11 @@ Move searchBestMove(BoardState& boardState, int depth){
             }
             beta = std::min(beta, bestScore);
             unmakeMove(boardState, currentMove, undo);
+            if(beta <= alpha){
+                break;
+            }
         }
-    
+        finalEval = bestScore;
     }
 
     return bestMove;
@@ -84,7 +91,11 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta){
             makeMove(boardState, currentMove, undo);
             int currentMoveScore = minimax(boardState, depth - 1, alpha, beta);
             maxScore = std::max(currentMoveScore, maxScore);
+            alpha = std::max(alpha, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
+            if(beta <= alpha){
+                break;
+            }
         }
         return maxScore;
     }
@@ -96,7 +107,11 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta){
             makeMove(boardState, currentMove, undo);
             int currentMoveScore = minimax(boardState, depth - 1, alpha, beta);
             minScore = std::min(currentMoveScore, minScore);
+            beta = std::min(beta, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
+            if(beta <= alpha){
+                break;
+            }
         }
 
         return minScore;
