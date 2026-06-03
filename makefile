@@ -6,50 +6,50 @@ SDL_FLAGS = `sdl2-config --cflags --libs` -lSDL2_image
 all: main engine createKeys
 
 createKeys: createKeys.o openBook.o
-	$(CXX) $(CXXFLAGS) -o createKeys createKeys.o openBook.o
+	$(CXX) $(CXXFLAGS) -o build/createKeys objects/createKeys.o objects/openBook.o
 
 debug: debugMain debugEngine
 
-debugMain: main.cpp physics.cpp engineProcess.cpp
+debugMain: src/main.cpp src/physics.cpp src/engineProcess.cpp
 	$(CXX) $(CXXFLAGS) -g -o main main.cpp physics.cpp engineProcess.cpp $(SDL_FLAGS)
 
-debugEngine: engine.cpp search.cpp evaluate.cpp physics.cpp openBook.cpp
-	$(CXX) $(CXXFlags) -g -o engine engine.cpp search.cpp evaluate.cpp physics.cpp openBook.cpp
+debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/openBook.cpp
+	$(CXX) $(CXXFlags) -g -o build/engine src/engine.cpp search.cpp evaluate.cpp physics.cpp openBook.cpp
 
 
 # Compile the GUI
 main: main.o physics.o engineProcess.o 
-	$(CXX) $(CXXFLAGS) -o main main.o physics.o engineProcess.o $(SDL_FLAGS)
+	$(CXX) $(CXXFLAGS) -o build/main objects/main.o objects/physics.o objects/engineProcess.o $(SDL_FLAGS)
 
-createKeys.o: createKeys.cpp
-	$(CXX) $(CXXFLAGS) -c -o createKeys.o createKeys.cpp
+createKeys.o: src/createKeys.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/createKeys.o src/createKeys.cpp
 
-main.o: main.cpp 
-	$(CXX) $(CXXFLAGS) -c -o main.o main.cpp $(SDL_FLAGS)
+main.o: src/main.cpp 
+	$(CXX) $(CXXFLAGS) -c -o objects/main.o src/main.cpp $(SDL_FLAGS)
 
 # Compile the standalone engine
-engine: engine.cpp evaluate.o search.o physics.o openBook.o
-	$(CXX) $(CXXFLAGS) -o engine engine.cpp physics.o evaluate.o search.o openBook.o
+engine: engine.o evaluate.o search.o physics.o openBook.o
+	$(CXX) $(CXXFLAGS) -o build/engine objects/engine.o objects/physics.o objects/evaluate.o objects/search.o objects/openBook.o
 
-engine.o: engine.cpp
-	$(CXX) $(CXXFLAGS) -c -o engine.o engine.cpp  
+engine.o: src/engine.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/engine.o src/engine.cpp  
 
-physics.o: physics.cpp
-	$(CXX) $(CXXFLAGS) -c -o physics.o physics.cpp
+physics.o: src/physics.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/physics.o src/physics.cpp
 
-engineProcess.o: engineProcess.cpp
-	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o engineProcess.o engineProcess.cpp
+engineProcess.o: src/engineProcess.cpp
+	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o objects/engineProcess.o src/engineProcess.cpp
 
-search.o: search.cpp
-	$(CXX) $(CXXFLAGS) -c -o search.o search.cpp
+search.o: src/search.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/search.o src/search.cpp
 
-evaluate.o: evaluate.cpp
-	$(CXX) $(CXXFLAGS) -c -o evaluate.o evaluate.cpp
+evaluate.o: src/evaluate.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/evaluate.o src/evaluate.cpp
 
-openBook.o: openBook.cpp
-	$(CXX) $(CXXFLAGS) -c -o openBook.o openBook.cpp	
+openBook.o: src/openBook.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/openBook.o src/openBook.cpp	
 
 # Clean up both executables
 clean:
-	rm -f *.o
-	rm -f main engine
+	rm -f objects/*.o
+	rm -f build/main build/engine build/createKeys
