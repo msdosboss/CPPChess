@@ -52,7 +52,8 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
 
 int minimax(BoardState& boardState, int depth, int alpha, int beta){
     if(depth == 0){
-        return evaluate(boardState);
+        //return evaluate(boardState);
+        return quiescenceSearch(boardState, 5, alpha, beta);
     }
     MoveList legalMoves = generateLegalMoves(boardState);
     if(legalMoves.count == 0){
@@ -114,6 +115,70 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta){
             }
         }
 
+        return minScore;
+    }
+}
+
+int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta){
+    if(depth == 0){
+        return evaluate(boardState);
+    }
+    int standardPat = evaluate(boardState);
+    if(boardState.sideToMove == WHITE){
+        if(standardPat >= beta){
+            return standardPat;
+        }
+        alpha = std::max(alpha, standardPat);
+    }
+    else{
+        if(standardPat <= alpha){
+            return standardPat;
+        }
+        beta = std::min(beta, standardPat);
+    }
+    MoveList legalMoves = generateLegalMoves(boardState);
+    if(boardState.sideToMove == WHITE){
+        int maxScore = standardPat;
+        for(int i = 0; i < legalMoves.count; i++){
+            Move currentMove = legalMoves.moves[i];
+            if(currentMove.flags ==  QUIETMOVE || 
+               currentMove.flags ==  DOUBLEMOVE||
+               currentMove.flags ==  KINGCASTLE||
+               currentMove.flags == QUEENCASTLE){
+                continue; 
+            }
+            UndoState undo;
+            makeMove(boardState, currentMove, undo);
+            int currentMoveScore = quiescenceSearch(boardState, depth - 1, alpha, beta);
+            alpha = std::max(alpha, currentMoveScore);
+            maxScore = std::max(currentMoveScore, maxScore);
+            unmakeMove(boardState, currentMove, undo);
+            if(beta <= alpha){
+                break;
+            }
+        }
+        return maxScore;
+    }
+    else{
+        int minScore = standardPat;
+        for(int i = 0; i < legalMoves.count; i++){
+            Move currentMove= legalMoves.moves[i];
+            if(currentMove.flags ==  QUIETMOVE || 
+               currentMove.flags ==  DOUBLEMOVE||
+               currentMove.flags ==  KINGCASTLE||
+               currentMove.flags == QUEENCASTLE){
+                continue; 
+            }
+            UndoState undo;
+            makeMove(boardState, currentMove, undo);
+            int currentMoveScore = quiescenceSearch(boardState, depth - 1, alpha, beta);
+            minScore = std::min(currentMoveScore, minScore);
+            beta = std::min(beta, currentMoveScore);
+            unmakeMove(boardState, currentMove, undo);
+            if(beta <= alpha){
+                break;
+            }
+        }
         return minScore;
     }
 }

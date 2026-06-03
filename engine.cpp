@@ -7,6 +7,7 @@ int main(){
     srand(time(NULL));
     generateKingAttacks();
     generateKnightAttacks();
+    initZobristTable("zobristKeys.json");
 
     while(std::getline(std::cin, line)){
         if(line == "quit"){
@@ -23,7 +24,7 @@ int main(){
             Move selectedMove = legalMoves.moves[randMove];*/
             int finalEval;
 
-            Move selectedMove = searchBestMove(boardState, 7, finalEval);
+            Move selectedMove = searchBestMove(boardState, 6, finalEval);
             std::string sourceSquare = squareToAlgebraic(selectedMove.source);
             std::string destSquare = squareToAlgebraic(selectedMove.dest);
             std::string strMove= sourceSquare + destSquare;

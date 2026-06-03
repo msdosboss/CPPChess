@@ -10,5 +10,6 @@
 
 Move searchBestMove(BoardState& boardState, int depth, int& finalEval);
 int minimax(BoardState& boardState, int depth, int alpha, int beta);
+int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta);
 
 #endif

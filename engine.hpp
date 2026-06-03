@@ -6,6 +6,7 @@
 #include <sstream>
 #include "physics.hpp"
 #include "search.hpp"
+#include "openBook.hpp"
 
 #include <stdlib.h>
 #include <time.h>

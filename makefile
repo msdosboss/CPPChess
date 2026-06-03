@@ -3,29 +3,35 @@ CXXFLAGS = -std=c++17 -Wall -O3
 SDL_FLAGS = `sdl2-config --cflags --libs` -lSDL2_image
 
 # 'all' is the default target. It tells Make to build both executables.
-all: main engine
+all: main engine createKeys
+
+createKeys: createKeys.o openBook.o
+	$(CXX) $(CXXFLAGS) -o createKeys createKeys.o openBook.o
 
 debug: debugMain debugEngine
 
 debugMain: main.cpp physics.cpp engineProcess.cpp
 	$(CXX) $(CXXFLAGS) -g -o main main.cpp physics.cpp engineProcess.cpp $(SDL_FLAGS)
 
-debugEngine: engine.cpp search.cpp evaluate.cpp physics.cpp
-	$(CXX) $(CXXFlags) -g -o engine engine.cpp search.cpp evaluate.cpp physics.cpp
+debugEngine: engine.cpp search.cpp evaluate.cpp physics.cpp openBook.cpp
+	$(CXX) $(CXXFlags) -g -o engine engine.cpp search.cpp evaluate.cpp physics.cpp openBook.cpp
 
 
 # Compile the GUI
 main: main.o physics.o engineProcess.o 
 	$(CXX) $(CXXFLAGS) -o main main.o physics.o engineProcess.o $(SDL_FLAGS)
 
+createKeys.o: createKeys.cpp
+	$(CXX) $(CXXFLAGS) -c -o createKeys.o createKeys.cpp
+
 main.o: main.cpp 
 	$(CXX) $(CXXFLAGS) -c -o main.o main.cpp $(SDL_FLAGS)
 
 # Compile the standalone engine
-engine: engine.cpp evaluate.o search.o physics.o
-	$(CXX) $(CXXFLAGS) -o engine engine.cpp physics.o evaluate.o search.o
+engine: engine.cpp evaluate.o search.o physics.o openBook.o
+	$(CXX) $(CXXFLAGS) -o engine engine.cpp physics.o evaluate.o search.o openBook.o
 
-engine.o: engine.o
+engine.o: engine.cpp
 	$(CXX) $(CXXFLAGS) -c -o engine.o engine.cpp  
 
 physics.o: physics.cpp
@@ -39,6 +45,9 @@ search.o: search.cpp
 
 evaluate.o: evaluate.cpp
 	$(CXX) $(CXXFLAGS) -c -o evaluate.o evaluate.cpp
+
+openBook.o: openBook.cpp
+	$(CXX) $(CXXFLAGS) -c -o openBook.o openBook.cpp	
 
 # Clean up both executables
 clean:

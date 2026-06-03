@@ -1013,7 +1013,6 @@ std::string boardStateToFen(BoardState& boardState){
     else{
         fen += squareToAlgebraic(boardState.enPassantSquare);
     }
-    fen += ' ';
 
     return fen;
 }
