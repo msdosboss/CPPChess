@@ -1,4 +1,5 @@
 #include "physics.hpp"
+#include "openBook.hpp"
 
 Bitboard knightAttacks[64];
 Bitboard kingAttacks[64];
@@ -550,6 +551,7 @@ void unmakeMove(BoardState& boardState, Move move, UndoState undoState){
     boardState.enPassantSquare = undoState.enPassantSquare;
     boardState.castlingRights = undoState.castling;
     populateOccupiedSquares(boardState);
+    boardState.zobristHash = undoState.oldZobristHash;
 }
 
 void makeMove(BoardState& boardState, Move move, UndoState& undoState){
@@ -564,9 +566,19 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
             destPieceType = i;
         }
     }
+    undoState.oldZobristHash = boardState.zobristHash;
     undoState.capturedPieceType = destPieceType;
     undoState.enPassantSquare = boardState.enPassantSquare;
     undoState.castling = boardState.castlingRights;
+
+    int zobristPieceIndex = pieceType + (6 * boardState.sideToMove);
+    boardState.zobristHash ^= zobristSideToMove;
+    //Removing from piece from source square
+    boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.source];
+
+    //Removing all the states from the hash inorder to add back at end
+    zobristFlags(boardState);
+
     if(pieceType == -1){
         std::cerr << "Failed to find piece in makeMove";
         return;
@@ -612,10 +624,14 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
     boardState.enPassantSquare = -1;
     switch(move.flags){
         case QUIETMOVE:
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
             break;
             
         case DOUBLEMOVE:
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
             if(move.dest < move.source){
                 boardState.enPassantSquare = move.dest + 8;
@@ -626,67 +642,118 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
             break;
 
         case KINGCASTLE:
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
             //Move the h rook to f
             clearBit(boardState.pieces[boardState.sideToMove][ROOK], move.source + 3);
             setBit(boardState.pieces[boardState.sideToMove][ROOK], move.source + 1);
+            zobristPieceIndex = ROOK + (6 * boardState.sideToMove);
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.source + 3];
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.source + 1];
 
             break;
 
         case QUEENCASTLE:
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
             //Move the a rook to d
             clearBit(boardState.pieces[boardState.sideToMove][ROOK], move.source - 4);
             setBit(boardState.pieces[boardState.sideToMove][ROOK], move.source - 1);
+            zobristPieceIndex = ROOK + (6 * boardState.sideToMove);
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.source - 4];
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.source - 1];
             break;
 
         case CAPTUREMOVE:
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
             clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
+            zobristPieceIndex = destPieceType + (6 * opposingColor);
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             break;
 
         case ENPASSANTCAPTURE:
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][pieceType], move.dest); 
+            zobristPieceIndex = PAWN + (6 * opposingColor);
             if(boardState.sideToMove == WHITE){
                 clearBit(boardState.pieces[opposingColor][PAWN], move.dest - 8);
+                boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest - 8];
             }
             else{
                 clearBit(boardState.pieces[opposingColor][PAWN], move.dest + 8);
+                boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest + 8];
             }
             break;
 
         case KNIGHTPROMO:
+            zobristPieceIndex = KNIGHT + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][KNIGHT], move.dest);
             break;
 
         case BISHOPPROMO:
+            zobristPieceIndex = BISHOP + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][BISHOP], move.dest);
             break;
 
         case ROOKPROMO:
+            zobristPieceIndex = ROOK + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][ROOK], move.dest);
             break;
 
         case QUEENPROMO:
+            zobristPieceIndex = QUEEN + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][QUEEN], move.dest);
             break;
 
         case KNIGHTPROMOCAPTURE:
+            zobristPieceIndex = KNIGHT + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
+            zobristPieceIndex = destPieceType + (opposingColor * 6);
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][KNIGHT], move.dest);
             clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
             break;
 
         case BISHOPPROMOCAPTURE:
+            zobristPieceIndex = BISHOP + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
+            zobristPieceIndex = destPieceType + (opposingColor * 6);
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][BISHOP], move.dest);
             clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
             break;
 
         case ROOKPROMOCAPTURE:
+            zobristPieceIndex = ROOK + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
+            zobristPieceIndex = destPieceType + (opposingColor * 6);
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][ROOK], move.dest);
             clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
             break;
 
         case QUEENPROMOCAPTURE:
+            zobristPieceIndex = QUEEN + (boardState.sideToMove * 6);
+            //Adding piece to dest square
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
+            zobristPieceIndex = destPieceType + (opposingColor * 6);
+            boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.dest];
             setBit(boardState.pieces[boardState.sideToMove][QUEEN], move.dest);
             clearBit(boardState.pieces[opposingColor][destPieceType], move.dest);
             break;
@@ -694,6 +761,7 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
     }
     populateOccupiedSquares(boardState);
     boardState.sideToMove = boardState.sideToMove == WHITE ? BLACK : WHITE;
+    zobristFlags(boardState);
 }
 
 void fenToBoardState(const std::string& fen, BoardState& boardState){
@@ -799,6 +867,7 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
         boardState.enPassantSquare = (fen[i] - 97) + (fen[i + 1] - 49) * 8;
         i += 2;
     }
+    boardState.zobristHash = boardStateHash(boardState);
 }
 
 

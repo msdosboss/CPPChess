@@ -12,4 +12,12 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval);
 int minimax(BoardState& boardState, int depth, int alpha, int beta);
 int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta);
 
+struct TTEntry {
+    uint64_t key;
+    int score;
+    int depth;
+    uint8_t flag;
+    Move bestMove;
+};
+
 #endif

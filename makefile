@@ -10,16 +10,16 @@ createKeys: createKeys.o openBook.o
 
 debug: debugMain debugEngine
 
-debugMain: src/main.cpp src/physics.cpp src/engineProcess.cpp
-	$(CXX) $(CXXFLAGS) -g -o main main.cpp physics.cpp engineProcess.cpp $(SDL_FLAGS)
+debugMain: src/main.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp
+	$(CXX) $(CXXFLAGS) -g -o main main.cpp physics.cpp engineProcess.cpp openBook.cpp $(SDL_FLAGS)
 
 debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/openBook.cpp
 	$(CXX) $(CXXFlags) -g -o build/engine src/engine.cpp search.cpp evaluate.cpp physics.cpp openBook.cpp
 
 
 # Compile the GUI
-main: main.o physics.o engineProcess.o 
-	$(CXX) $(CXXFLAGS) -o build/main objects/main.o objects/physics.o objects/engineProcess.o $(SDL_FLAGS)
+main: main.o physics.o engineProcess.o openBook.o 
+	$(CXX) $(CXXFLAGS) -o build/main objects/main.o objects/physics.o objects/engineProcess.o objects/openBook.o $(SDL_FLAGS)
 
 createKeys.o: src/createKeys.cpp
 	$(CXX) $(CXXFLAGS) -c -o objects/createKeys.o src/createKeys.cpp

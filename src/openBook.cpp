@@ -1,10 +1,5 @@
 #include "openBook.hpp"
 
-uint64_t zobristTable[12][64];
-uint64_t zobristCastle[4];
-uint64_t zobristSideToMove;
-uint64_t zobristEnPassant[64];
-
 void createZobristKeys(const std::string fileName){
     std::random_device rd;
     std::mt19937_64 gen(rd());
@@ -21,7 +16,7 @@ void createZobristKeys(const std::string fileName){
     for(int i = 0; i < 4; i++){
         zobristCastle[i] = distrib(gen);
     }
-    for(int i = 0; i < 64; i++){
+    for(int i = 0; i < 8; i++){
         zobristEnPassant[i] = distrib(gen);
     }
 
@@ -58,8 +53,64 @@ void initZobristTable(const std::string fileName){
     for(int i = 0; i < 4; i++){
         zobristCastle[i] = keys["zobristCastle"][i];
     }
-    for(int i = 0; i < 64; i++){
+    for(int i = 0; i < 8; i++){
         zobristEnPassant[i] = keys["zobristEnPassant"][i];
     }
     zobristSideToMove = keys["zobristSideToMove"];
+}
+
+uint64_t boardStateHash(BoardState& boardState){
+    uint64_t zobristHash = 0;
+    for(int color = WHITE; color <= BLACK; color++){
+        for(int pieceType = PAWN; pieceType <= KING; pieceType++){
+            uint64_t bb = boardState.pieces[color][pieceType];
+            while(bb != 0){
+                int squareIndex = __builtin_ctzll(bb);
+                zobristHash ^= zobristTable[pieceType + (color * 6)][squareIndex];
+
+                clearBit(bb, squareIndex);
+            }
+        }
+    }
+    //No key is applied if it white to move
+    if(boardState.sideToMove == BLACK){
+        zobristHash ^= zobristSideToMove;
+    }
+    if(boardState.castlingRights.queenSideCastleBlack){
+        zobristHash ^= zobristCastle[BLACKQUEENCASTLE];
+    }
+    if(boardState.castlingRights.kingSideCastleBlack){
+        zobristHash ^= zobristCastle[BLACKKINGCASTLE];
+    }
+    if(boardState.castlingRights.queenSideCastleWhite){
+        zobristHash ^= zobristCastle[WHITEQUEENCASTLE];
+    }
+    if(boardState.castlingRights.kingSideCastleWhite){
+        zobristHash ^= zobristCastle[WHITEKINGCASTLE];
+    }
+    if(boardState.enPassantSquare != -1){
+        int enPassantFile = boardState.enPassantSquare % 8;
+        zobristHash ^= zobristEnPassant[enPassantFile];
+    }
+
+    return zobristHash;
+}
+
+void zobristFlags(BoardState& boardState){
+    if(boardState.castlingRights.queenSideCastleBlack){
+        boardState.zobristHash ^= zobristCastle[BLACKQUEENCASTLE];
+    }
+    if(boardState.castlingRights.kingSideCastleBlack){
+        boardState.zobristHash ^= zobristCastle[BLACKKINGCASTLE];
+    }
+    if(boardState.castlingRights.queenSideCastleWhite){
+        boardState.zobristHash ^= zobristCastle[WHITEQUEENCASTLE];
+    }
+    if(boardState.castlingRights.kingSideCastleWhite){
+        boardState.zobristHash ^= zobristCastle[WHITEKINGCASTLE];
+    }
+    if(boardState.enPassantSquare != -1){
+        int enPassantFile = boardState.enPassantSquare % 8;
+        boardState.zobristHash ^= zobristEnPassant[enPassantFile];
+    }
 }

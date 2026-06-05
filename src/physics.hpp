@@ -74,12 +74,14 @@ struct BoardState {
     // 0bxxxxKQkq
     CastlingRights castlingRights;
     int enPassantSquare;
+    uint64_t zobristHash;
 };
 
 struct UndoState {
     int capturedPieceType;    // PAWN to QUEEN, or -1 if no capture
     int enPassantSquare;      // The EP square BEFORE the move was made
     CastlingRights castling;  // The castling rights BEFORE the move was made
+    uint64_t oldZobristHash;
 };
 
 void fenToBoardState(const std::string& fen, BoardState& boardState);
