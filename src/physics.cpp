@@ -573,7 +573,7 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
 
     int zobristPieceIndex = pieceType + (6 * boardState.sideToMove);
     boardState.zobristHash ^= zobristSideToMove;
-    //Removing from piece from source square
+    //Removing piece from source square
     boardState.zobristHash ^= zobristTable[zobristPieceIndex][move.source];
 
     //Removing all the states from the hash inorder to add back at end
@@ -1084,4 +1084,14 @@ std::string boardStateToFen(BoardState& boardState){
     }
 
     return fen;
+}
+
+void moveSwap(MoveList legalMoves, Move possibleBestMove){
+    for(int i = 0; i < legalMoves.count; i++){
+        if(legalMoves.moves[i].raw == possibleBestMove.raw){
+            std::swap(legalMoves.moves[0], legalMoves.moves[i]); 
+            std::swap(legalMoves.moveScores[0], legalMoves.moveScores[i]);
+            break;
+        } 
+    }
 }

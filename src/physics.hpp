@@ -61,6 +61,7 @@ union Move{
 
 struct MoveList{
     Move moves[MAXMOVES];
+    int moveScores[MAXMOVES];
     int count;
 };
 
@@ -104,6 +105,7 @@ uint64_t perft(BoardState& boardState, int depth);
 std::string squareToAlgebraic(int sq);
 Move strMoveToMove(const std::string& strMove, BoardState& boardState);
 std::string boardStateToFen(BoardState& boardState);
+void moveSwap(MoveList legalMoves, Move possibleBestMove);
 
 inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}
 inline void clearBit(Bitboard& bb, int square){bb &= ~(1ULL << square);}

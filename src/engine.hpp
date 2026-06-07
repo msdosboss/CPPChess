@@ -7,6 +7,7 @@
 #include "physics.hpp"
 #include "search.hpp"
 #include "openBook.hpp"
+#include "transpositionTable.hpp"
 
 #include <stdlib.h>
 #include <time.h>

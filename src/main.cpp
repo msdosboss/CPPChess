@@ -163,7 +163,10 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
 
     BoardState boardState;
     fenToBoardState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", boardState);
-    //fenToBoardState("r1bqk2r/ppppbppp/2nn4/1B2N3/8/8/PPPP1PPP/RNBQR1K1 w kq - 1 7", boardState);
+    //Slow middle game position
+    //fenToBoardState("4rk1r/2pnq1pp/1p1bQn2/p3P3/3P1N2/2N5/PP1B1PPP/R3K2R w KQ - 1 16", boardState);
+    //Rook King end game
+    //fenToBoardState("8/8/8/4k3/8/8/3K4/3R4 w - - 0 1", boardState);
     perftDivide(boardState, 5);
 
     int clickX, clickY, mappedY;

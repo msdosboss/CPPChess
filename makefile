@@ -28,8 +28,8 @@ main.o: src/main.cpp
 	$(CXX) $(CXXFLAGS) -c -o objects/main.o src/main.cpp $(SDL_FLAGS)
 
 # Compile the standalone engine
-engine: engine.o evaluate.o search.o physics.o openBook.o
-	$(CXX) $(CXXFLAGS) -o build/engine objects/engine.o objects/physics.o objects/evaluate.o objects/search.o objects/openBook.o
+engine: engine.o evaluate.o search.o physics.o openBook.o transpositionTable.o
+	$(CXX) $(CXXFLAGS) -o build/engine objects/engine.o objects/physics.o objects/evaluate.o objects/search.o objects/openBook.o objects/transpositionTable.o
 
 engine.o: src/engine.cpp
 	$(CXX) $(CXXFLAGS) -c -o objects/engine.o src/engine.cpp  
@@ -48,6 +48,9 @@ evaluate.o: src/evaluate.cpp
 
 openBook.o: src/openBook.cpp
 	$(CXX) $(CXXFLAGS) -c -o objects/openBook.o src/openBook.cpp	
+
+transpositionTable.o: src/transpositionTable.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/transpositionTable.o src/transpositionTable.cpp	
 
 # Clean up both executables
 clean:
