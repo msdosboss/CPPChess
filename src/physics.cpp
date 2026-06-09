@@ -1063,7 +1063,7 @@ std::string boardStateToFen(BoardState& boardState){
     fen += ' ';
 
     if(boardState.castlingRights.kingSideCastleWhite){
-        fen += 'W'; 
+        fen += 'K'; 
     }
     if(boardState.castlingRights.queenSideCastleWhite){
         fen += 'Q'; 

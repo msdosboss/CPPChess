@@ -8,6 +8,11 @@ Move searchBestMoveIt(BoardState& boardState, int maxDepth, int& finalEval, std:
     searchInfo.duration = duration;
     searchInfo.nodesSearched = 0;
 
+    Move openMove;
+    if(getBookMove(boardState.zobristHash, openMove)){
+        return openMove;
+    }
+
     for(int currentDepth = 1; currentDepth <= maxDepth; currentDepth++){
         int score = minimax(boardState, currentDepth, -INFINITESCORE, INFINITESCORE, searchInfo);
 

@@ -1,5 +1,54 @@
 #include "openBook.hpp"
 
+void loadOpeningBook(const std::string& fileName){
+    std::ifstream file(fileName);
+    nlohmann::json j;
+    file >> j;
+    
+    for (auto& [hashStr, movesJson] : j.items()) {
+        uint64_t hash = std::stoull(hashStr); // Convert string key back to 64-bit int
+
+        std::vector<BookMove> moves;
+        for (auto& moveData : movesJson) {
+            moves.push_back({
+                    {moveData["move"].get<uint16_t>()},
+                    moveData["weight"].get<int>()
+            });
+        }
+        openBook[hash] = moves;
+    }
+}
+
+
+bool getBookMove(uint64_t zobristHash, Move& openMove){
+    if(openBook.count(zobristHash) == 0){
+        return false;
+    }
+
+    int totalWeight = 0;
+    for(size_t i = 0; i < openBook.count(zobristHash); i++){
+        totalWeight += openBook[zobristHash][i].weight;
+    }
+
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> dist(0, totalWeight - 1);
+    int randomTarget = dist(rng);
+
+    int currentWeight = 0;
+    for(size_t i = 0; i < openBook.count(zobristHash); i++){
+        if(currentWeight > randomTarget){
+            openMove = openBook[zobristHash][i].move;
+            return true;
+        }
+        currentWeight += openBook[zobristHash][i].weight;
+    }
+
+    //Fail safe
+    openMove = openBook[zobristHash][0].move;
+    return true;
+    
+}
+
 void createZobristKeys(const std::string fileName){
     std::random_device rd;
     std::mt19937_64 gen(rd());

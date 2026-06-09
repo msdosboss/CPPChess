@@ -3,6 +3,7 @@
 
 #include "physics.hpp"
 #include "evaluate.hpp"
+#include "openBook.hpp"
 
 #include <iostream>
 #include <string>

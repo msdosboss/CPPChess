@@ -4,6 +4,7 @@
 #include "physics.hpp"
 #include "evaluate.hpp"
 #include "transpositionTable.hpp"
+#include "openBook.hpp"
 #include <algorithm>
 #include <chrono>
 
