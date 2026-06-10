@@ -35,9 +35,9 @@ void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove){
             moveList.moveScores[i] = INFINITESCORE;
             continue;
         }
-        int sourcePieceType;
-        int destPieceType = -1;
-        for(int color = WHITE; color <= BLACK; color++){
+        int sourcePieceType = boardState.pieceArray[moveList.moves[i].source];
+        int destPieceType = boardState.pieceArray[moveList.moves[i].dest];
+        /*for(int color = WHITE; color <= BLACK; color++){
             for(int pieceType = PAWN; pieceType <= KING; pieceType++){
                 if(isOccupied(boardState.pieces[color][pieceType], moveList.moves[i].source)){
                     sourcePieceType = pieceType;
@@ -46,7 +46,7 @@ void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove){
                     destPieceType = pieceType;
                 }
             }
-        }
+        }*/
         if(destPieceType == -1){
             moveList.moveScores[i] = 0;
         }

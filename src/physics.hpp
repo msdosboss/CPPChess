@@ -76,6 +76,7 @@ struct BoardState {
     CastlingRights castlingRights;
     int enPassantSquare;
     uint64_t zobristHash;
+    int8_t pieceArray[64];
 };
 
 struct UndoState {

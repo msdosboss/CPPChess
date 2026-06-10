@@ -398,7 +398,7 @@ int main(){
     SDL_Window *wind = initDisplay(WIDTH, HEIGHT, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0);
     SDL_Renderer *rend = initRender(wind);
     
-    int playerColor = WHITE;
+    int playerColor = BLACK;
     initBoardRect(); 
     initTexture(rend);
     
