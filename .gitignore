@@ -2,3 +2,4 @@ objects/*.o
 build/main
 build/createKeys
 build/engine
+build/otherEngines/*

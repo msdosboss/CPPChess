@@ -165,6 +165,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     loadOpeningBook("data/openBook.json");
     BoardState boardState;
     fenToBoardState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", boardState);
+    //This position causes bug that I need to figure out
+    //fenToBoardState("rnb1k1nr/ppq3pp/4pp2/3pP1NQ/2pP4/P1P5/2P2PPP/R1B1KB1R b KQkq - 1 9", boardState);
     //Slow middle game position
     //fenToBoardState("4rk1r/2pnq1pp/1p1bQn2/p3P3/3P1N2/2N5/PP1B1PPP/R3K2R w KQ - 1 16", boardState);
     //Rook King end game
@@ -269,30 +271,32 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
             if(!engineThinking){
                 std::string positionCmd = createPositionCmd(boardState, moveHistory, currentMove);
                 engine.sendCommand(positionCmd);
-                engine.sendCommand("go");
+                engine.sendCommand("go wtime 100000 btime 100000");
                 engineThinking = true;
             }
             else if(engine.hasData()){
                 std::string engineResponse = engine.receiveCommand();
                 std::cout << "Engine says: " << engineResponse << std::endl;
 
-                std::istringstream ss(engineResponse);
-                std::string token;
-                //Skip "bestmove"
-                ss >> token;
-                //token equals move ie "e2e4"
-                ss >> token;
+                if(engineResponse.find("bestmove") != std::string::npos){
+                    std::istringstream ss(engineResponse);
+                    std::string token;
+                    //Skip "bestmove"
+                    ss >> token;
+                    //token equals move ie "e2e4"
+                    ss >> token;
 
-                Move engineMove = strMoveToMove(token, boardState);
+                    Move engineMove = strMoveToMove(token, boardState);
 
-                //MoveList legalMoves = generateLegalMoves(boardState);
-                UndoState undo;
-                makeMove(boardState, engineMove, undo);
-                moveHistory[currentMove] = engineMove;
-                undoHistory[currentMove] = undo;
-                currentMove++;
+                    //MoveList legalMoves = generateLegalMoves(boardState);
+                    UndoState undo;
+                    makeMove(boardState, engineMove, undo);
+                    moveHistory[currentMove] = engineMove;
+                    undoHistory[currentMove] = undo;
+                    currentMove++;
 
-                engineThinking = false;
+                    engineThinking = false;
+                }
             }
         }
 
@@ -406,7 +410,8 @@ int main(){
     generateKingAttacks();
     generateKnightAttacks();
 
-    EngineProcess engine("./engine");
+    //EngineProcess engine("./engine");
+    EngineProcess engine("otherEngines/stockfish/stockfish");
     engine.sendCommand("uci");
 
     std::string engineResponse;
@@ -417,7 +422,16 @@ int main(){
     
     }
     std::cout << "Engine says: " << engineResponse << std::endl;
+
+    engine.sendCommand("isready");
     
+    while((engineResponse = engine.receiveCommand()) != "readyok"){
+        if(engineResponse != ""){
+            std::cout << "Engine says: " << engineResponse << std::endl;
+        }
+    }
+    std::cout << "Engine says: " << engineResponse << std::endl;
+    engine.sendCommand("ucinewgame");
 
     displayLoop(wind, rend, playerColor, engine);
     return 0;

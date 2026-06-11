@@ -20,7 +20,14 @@ int main(){
             std::cout << "id author Jacob Todd" << std::endl;
             std::cout << "uciok" << std::endl;
         }
-        else if(line == "go"){
+        else if(line == "isready"){
+            std::cout << "readyok" << std::endl;
+        }
+        //new board position handled in position command
+        else if(line == "ucinewgame"){
+            TT.clear();
+        }
+        else if(line.find("go") != std::string::npos){
             /*MoveList legalMoves = generateLegalMoves(boardState);
             int randMove = rand() % legalMoves.count;
             Move selectedMove = legalMoves.moves[randMove];*/
@@ -30,8 +37,9 @@ int main(){
             Move selectedMove = searchBestMoveIt(boardState, 25, finalEval, std::chrono::seconds(30));
             std::string sourceSquare = squareToAlgebraic(selectedMove.source);
             std::string destSquare = squareToAlgebraic(selectedMove.dest);
-            std::string strMove = sourceSquare + destSquare;
+            std::string strMove = sourceSquare + destSquare + promotionChar(selectedMove);
 
+            std::cout << "info score cp " << finalEval << std::endl;
             std::cout << "bestmove " << strMove << " Score: " << finalEval << std::endl;
         }
         else if(line.find("position") == 0){

@@ -596,7 +596,7 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
     zobristFlags(boardState);
 
     if(pieceType == -1){
-        std::cerr << "Failed to find piece in makeMove";
+        std::cerr << "Failed to find piece in makeMove on square " << move.source << std::endl;
         return;
     }
     if (pieceType == KING) {
@@ -1142,5 +1142,23 @@ void moveSwap(MoveList legalMoves, Move possibleBestMove){
             std::swap(legalMoves.moveScores[0], legalMoves.moveScores[i]);
             break;
         } 
+    }
+}
+
+std::string promotionChar(Move move){
+    if((move.flags & KNIGHTPROMO) == KNIGHTPROMO){
+        return "n"; 
+    }
+    else if((move.flags & KNIGHTPROMO) == BISHOPPROMO){
+        return "b"; 
+    }
+    else if((move.flags & KNIGHTPROMO) == ROOKPROMO){
+        return "r"; 
+    }
+    else if((move.flags & KNIGHTPROMO) == QUEENPROMO){
+        return "q"; 
+    }
+    else{
+        return "";
     }
 }

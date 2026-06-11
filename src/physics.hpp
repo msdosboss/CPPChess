@@ -107,6 +107,7 @@ std::string squareToAlgebraic(int sq);
 Move strMoveToMove(const std::string& strMove, BoardState& boardState);
 std::string boardStateToFen(BoardState& boardState);
 void moveSwap(MoveList legalMoves, Move possibleBestMove);
+std::string promotionChar(Move move);
 
 inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}
 inline void clearBit(Bitboard& bb, int square){bb &= ~(1ULL << square);}
