@@ -26,7 +26,7 @@ bool getBookMove(uint64_t zobristHash, Move& openMove){
     }
 
     int totalWeight = 0;
-    for(size_t i = 0; i < openBook.count(zobristHash); i++){
+    for(size_t i = 0; i < openBook[zobristHash].size(); i++){
         totalWeight += openBook[zobristHash][i].weight;
     }
 
@@ -35,7 +35,7 @@ bool getBookMove(uint64_t zobristHash, Move& openMove){
     int randomTarget = dist(rng);
 
     int currentWeight = 0;
-    for(size_t i = 0; i < openBook.count(zobristHash); i++){
+    for(size_t i = 0; i < openBook[zobristHash].size(); i++){
         if(currentWeight > randomTarget){
             openMove = openBook[zobristHash][i].move;
             return true;

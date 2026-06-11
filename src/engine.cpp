@@ -27,7 +27,7 @@ int main(){
             int finalEval = 0;
 
             //Move selectedMove = searchBestMove(boardState, 6, finalEval);
-            Move selectedMove = searchBestMoveIt(boardState, 16, finalEval, std::chrono::seconds(15));
+            Move selectedMove = searchBestMoveIt(boardState, 25, finalEval, std::chrono::seconds(30));
             std::string sourceSquare = squareToAlgebraic(selectedMove.source);
             std::string destSquare = squareToAlgebraic(selectedMove.dest);
             std::string strMove = sourceSquare + destSquare;
