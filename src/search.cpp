@@ -1,9 +1,7 @@
 #include "search.hpp"
 
-Move searchBestMoveIt(BoardState& boardState, int maxDepth, int& finalEval, std::chrono::seconds duration){
+Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo &searchInfo, int &finalEval){
     Move topMove;
-    SearchInfo searchInfo;
-    searchInfo.timesUp = false;
     searchInfo.start = std::chrono::steady_clock::now();
     searchInfo.duration = duration;
     searchInfo.nodesSearched = 0;
@@ -14,7 +12,7 @@ Move searchBestMoveIt(BoardState& boardState, int maxDepth, int& finalEval, std:
     }
 
     for(int currentDepth = 1; currentDepth <= maxDepth; currentDepth++){
-        int score = minimax(boardState, currentDepth, -INFINITESCORE, INFINITESCORE, searchInfo);
+        minimax(boardState, currentDepth, -INFINITESCORE, INFINITESCORE, searchInfo);
 
         if(searchInfo.timesUp == true){
             break;
@@ -22,8 +20,8 @@ Move searchBestMoveIt(BoardState& boardState, int maxDepth, int& finalEval, std:
         
         TTEntry rootEntry;
         if(TT.probe(boardState.zobristHash, rootEntry)){
+            finalEval = rootEntry.score;
             topMove = rootEntry.bestMove;
-            finalEval = score;
         }
     }
     return topMove;

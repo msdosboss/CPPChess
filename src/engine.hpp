@@ -1,6 +1,8 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include <thread>
+#include <atomic>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -9,7 +11,6 @@
 #include "openBook.hpp"
 #include "transpositionTable.hpp"
 
-#include <stdlib.h>
-#include <time.h>
+void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo);
 
 #endif

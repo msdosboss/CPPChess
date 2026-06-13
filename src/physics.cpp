@@ -1074,8 +1074,8 @@ std::string boardStateToFen(BoardState& boardState){
         for(int x = 0; x < 8; x++){
             int currentSquare = y * 8 + x;
             if(isOccupied(boardState.occupiedSquares[2], currentSquare)){
-                int pieceType;
-                int pieceColor;
+                int pieceType = PAWN;
+                int pieceColor = WHITE;
                 for(int color = WHITE; color <= BLACK; color++){
                     for(int piece = PAWN; piece <= KING; piece++){
                         if(isOccupied(boardState.pieces[color][piece], currentSquare)){

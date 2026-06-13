@@ -1,6 +1,9 @@
 #include "engine.hpp"
 
 int main(){
+    std::thread searchThread;
+    SearchInfo searchInfo;
+    searchInfo.timesUp = false;
     BoardState boardState;
     fenToBoardState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", boardState);
     std::string line;
@@ -13,6 +16,10 @@ int main(){
 
     while(std::getline(std::cin, line)){
         if(line == "quit"){
+            searchInfo.timesUp = true;
+            if(searchThread.joinable()){
+                searchThread.join();
+            }
             break;
         }
         else if(line == "uci"){
@@ -28,19 +35,47 @@ int main(){
             TT.clear();
         }
         else if(line.find("go") != std::string::npos){
-            /*MoveList legalMoves = generateLegalMoves(boardState);
-            int randMove = rand() % legalMoves.count;
-            Move selectedMove = legalMoves.moves[randMove];*/
-            int finalEval = 0;
+            if(searchThread.joinable()){
+                searchThread.join();
+            }
+            int depth = 25;
+            int durationSeconds = 0;
+            int wTimeSeconds = -1;
+            int bTimeSeconds = -1;
+            std::istringstream ss(line);
+            std::string token;
 
-            //Move selectedMove = searchBestMove(boardState, 6, finalEval);
-            Move selectedMove = searchBestMoveIt(boardState, 25, finalEval, std::chrono::seconds(30));
-            std::string sourceSquare = squareToAlgebraic(selectedMove.source);
-            std::string destSquare = squareToAlgebraic(selectedMove.dest);
-            std::string strMove = sourceSquare + destSquare + promotionChar(selectedMove);
+            //Consume the word go
+            ss >> token;
+            while(ss >> token){
+                if(token == "wtime"){
+                    ss >> token;
+                    wTimeSeconds = std::stoi(token) / 1000;
+                }
+                else if(token == "btime"){
+                    ss >> token;
+                    bTimeSeconds = std::stoi(token) / 1000;
+                }
+                else if(token == "depth"){
+                    ss >> token;
+                    depth = std::stoi(token);
+                }
+            }
+            //defualt to 30 seconds
+            if(wTimeSeconds == -1 || bTimeSeconds == -1){
+                durationSeconds = 30;
+            }
+            else{
+                if(boardState.sideToMove == WHITE){
+                    durationSeconds = std::max(1, wTimeSeconds / 20);
+                }
+                else{
+                    durationSeconds = std::max(1, bTimeSeconds / 20);
+                }
+            }
+            searchInfo.timesUp = false;
+            searchThread = std::thread(runSearchWrapper, boardState, depth, std::chrono::seconds(durationSeconds), std::ref(searchInfo));
 
-            std::cout << "info score cp " << finalEval << std::endl;
-            std::cout << "bestmove " << strMove << " Score: " << finalEval << std::endl;
         }
         else if(line.find("position") == 0){
             std::istringstream ss(line);
@@ -79,8 +114,32 @@ int main(){
                 } 
             }
         }
+        else if(line == "stop"){
+            searchInfo.timesUp = true;
+        }
+        else{
+            std::cout << "Failed to parse: " << line << std::endl;
+        }
         
     }
 
+    searchInfo.timesUp = true;
+    if(searchThread.joinable()){
+        searchThread.join();
+    }
     return 0;
+}
+
+
+void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo){
+    int finalEval = 0;
+
+    Move selectedMove = searchBestMoveIt(boardState, maxDepth, duration, searchInfo, finalEval);
+    std::string sourceSquare = squareToAlgebraic(selectedMove.source);
+    std::string destSquare = squareToAlgebraic(selectedMove.dest);
+    std::string strMove = sourceSquare + destSquare + promotionChar(selectedMove);
+
+    std::cout << "info score cp " << finalEval << std::endl;
+    std::cout << "bestmove " << strMove << std::endl;
+
 }

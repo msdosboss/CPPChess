@@ -176,6 +176,9 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     //perftDivide(boardState, 5);
 
     int clickX, clickY, mappedY;
+    clickX = 0;
+    clickY = 0;
+    mappedY = 0;
     bool engineThinking = false;
     Move moveHistory[MAXMOVESPERGAME];
     UndoState undoHistory[MAXMOVESPERGAME];
@@ -271,7 +274,8 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
             if(!engineThinking){
                 std::string positionCmd = createPositionCmd(boardState, moveHistory, currentMove);
                 engine.sendCommand(positionCmd);
-                engine.sendCommand("go wtime 100000 btime 100000");
+                //engine.sendCommand("go wtime 100000 btime 100000");
+                engine.sendCommand("go");
                 engineThinking = true;
             }
             else if(engine.hasData()){
@@ -402,7 +406,7 @@ int main(){
     SDL_Window *wind = initDisplay(WIDTH, HEIGHT, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0);
     SDL_Renderer *rend = initRender(wind);
     
-    int playerColor = WHITE;
+    int playerColor = BLACK;
     initBoardRect(); 
     initTexture(rend);
     
@@ -410,8 +414,8 @@ int main(){
     generateKingAttacks();
     generateKnightAttacks();
 
-    //EngineProcess engine("./engine");
-    EngineProcess engine("otherEngines/stockfish/stockfish");
+    EngineProcess engine("./engine");
+    //EngineProcess engine("otherEngines/stockfish/stockfish");
     engine.sendCommand("uci");
 
     std::string engineResponse;
