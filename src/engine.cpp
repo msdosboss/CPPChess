@@ -45,8 +45,6 @@ int main(){
             std::istringstream ss(line);
             std::string token;
 
-            //Consume the word go
-            ss >> token;
             while(ss >> token){
                 if(token == "wtime"){
                     ss >> token;

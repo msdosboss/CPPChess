@@ -52,7 +52,7 @@ int main(int argc, char **argv)
         
 
     
-    std::thread serverThread;
+    std::thread serverThread(serverListener, sockDesc, std::ref(recvFlag), std::ref(recvPacket));
     EngineProcess engine(pathToEngine);
 
     Packet sendPacket = {0};
