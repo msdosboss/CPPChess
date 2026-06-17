@@ -21,8 +21,8 @@ debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/
 UCIClient: UCIClient.o physics.o engineProcess.o openBook.o 
 	$(CXX) $(CXXFLAGS) -o build/main objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o $(SDL_FLAGS)
 
-netClient: netClient.o
-	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/netClient objects/netClient.o
+netClient: netClient.o engineProcess.o
+	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/netClient objects/netClient.o objects/engineProcess.o
 	
 netClient.o: src/netClient.cpp
 	$(CXX) $(CXXFlags) $(SDL_FLAGS) -c -o objects/netClient.o src/netClient.cpp

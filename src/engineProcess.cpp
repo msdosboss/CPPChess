@@ -80,3 +80,26 @@ bool EngineProcess::hasData(){
 
     return buffer.find('\n') != std::string::npos;
 }
+
+bool EngineProcess::initCommunication() {
+    sendCommand("uci");
+    std::string engineResponse = receiveCommand();
+
+    do {
+        if (engineResponse != "") {
+            std::cout << "Engine says: " << engineResponse << std::endl;
+        }
+    } while ((engineResponse = receiveCommand())  != "uciok");
+
+    sendCommand("isready");
+
+    do {
+        if (engineResponse != "") {
+            std::cout << "Engine says: " << engineResponse << std::endl;
+        }
+    } while ((engineResponse = receiveCommand())  != "readyok");
+
+    sendCommand("ucinewgame");
+    return true;
+    //TODO - actually handle not establishing communication / avoid infinite loop on failure
+}

@@ -416,26 +416,11 @@ int main(){
 
     EngineProcess engine("./engine");
     //EngineProcess engine("otherEngines/stockfish/stockfish");
-    engine.sendCommand("uci");
 
-    std::string engineResponse;
-    while((engineResponse = engine.receiveCommand()) != "uciok"){
-        if(engineResponse != ""){
-            std::cout << "Engine says: " << engineResponse << std::endl;
-        }
-    
+    if (!engine.initCommunication()) {
+        std::cerr << "Failed to establish UCI communication with engine" << std::endl;
+        return -1;
     }
-    std::cout << "Engine says: " << engineResponse << std::endl;
-
-    engine.sendCommand("isready");
-    
-    while((engineResponse = engine.receiveCommand()) != "readyok"){
-        if(engineResponse != ""){
-            std::cout << "Engine says: " << engineResponse << std::endl;
-        }
-    }
-    std::cout << "Engine says: " << engineResponse << std::endl;
-    engine.sendCommand("ucinewgame");
 
     displayLoop(wind, rend, playerColor, engine);
     return 0;

@@ -22,7 +22,7 @@ public:
     void sendCommand(const std::string& cmd) override;
     std::string receiveCommand() override;
     bool hasData() override;
-
+    bool initCommunication();
 };
 
 #endif
