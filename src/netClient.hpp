@@ -7,5 +7,11 @@
 #include <arpa/inet.h>
 #include <thread>
 #include "engineProcess.hpp"
+#include <string.h>
+
+#define PACKET_STR_SIZE 128
+struct Packet {
+    char str[PACKET_STR_SIZE];
+};
 
 #endif //__NETCLIENT_HPP__
