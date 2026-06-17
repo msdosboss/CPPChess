@@ -8,6 +8,7 @@
 typedef uint64_t Bitboard;
 
 #define MAXMOVES 218
+#define STARTFEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define WHITE 0
 #define BLACK 1
