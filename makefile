@@ -3,29 +3,35 @@ CXXFLAGS = -std=c++17 -Wall -O3
 SDL_FLAGS = `sdl2-config --cflags --libs` -lSDL2_image
 
 # 'all' is the default target. It tells Make to build both executables.
-all: main engine createKeys
+all: UCIClient engine createKeys netClient
 
 createKeys: createKeys.o openBook.o
 	$(CXX) $(CXXFLAGS) -o build/createKeys objects/createKeys.o objects/openBook.o
 
 debug: debugMain debugEngine
 
-debugMain: src/main.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp
-	$(CXX) $(CXXFLAGS) -g -o build/main src/main.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp $(SDL_FLAGS)
+debugMain: src/UCIClient.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp
+	$(CXX) $(CXXFLAGS) -g -o build/main src/UCIClient.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp $(SDL_FLAGS)
 
 debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/openBook.cpp src/transpositionTable.cpp
 	$(CXX) $(CXXFlags) -g -o build/engine src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/openBook.cpp src/transpositionTable.cpp
 
 
 # Compile the GUI
-main: main.o physics.o engineProcess.o openBook.o 
-	$(CXX) $(CXXFLAGS) -o build/main objects/main.o objects/physics.o objects/engineProcess.o objects/openBook.o $(SDL_FLAGS)
+UCIClient: UCIClient.o physics.o engineProcess.o openBook.o 
+	$(CXX) $(CXXFLAGS) -o build/main objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o $(SDL_FLAGS)
+
+netClient: netClient.o
+	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/netClient objects/netClient.o
+	
+netClient.o: src/netClient.cpp
+	$(CXX) $(CXXFlags) $(SDL_FLAGS) -c -o objects/netClient.o src/netClient.cpp
 
 createKeys.o: src/createKeys.cpp
 	$(CXX) $(CXXFLAGS) -c -o objects/createKeys.o src/createKeys.cpp
 
-main.o: src/main.cpp 
-	$(CXX) $(CXXFLAGS) -c -o objects/main.o src/main.cpp $(SDL_FLAGS)
+UCIClient.o: src/UCIClient.cpp 
+	$(CXX) $(CXXFLAGS) -c -o objects/UCIClient.o src/UCIClient.cpp $(SDL_FLAGS)
 
 # Compile the standalone engine
 engine: engine.o evaluate.o search.o physics.o openBook.o transpositionTable.o

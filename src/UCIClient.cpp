@@ -1,5 +1,5 @@
 //g++ -o main main.cpp `sdl2-config --cflags --libs` -lSDL2_image
-#include "main.hpp"
+#include "UCIClient.hpp"
 #include "engineProcess.hpp"
 
 #define WIDTH 800

@@ -1,7 +1,7 @@
 #ifndef ENGINEPROCESS_H
 #define ENGINEPROCESS_H
 
-#include "main.hpp"
+#include "UCIClient.hpp"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
