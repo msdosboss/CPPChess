@@ -4,3 +4,4 @@ build/createKeys
 build/engine
 build/otherEngines/*
 build/netClient
+build/matchManager

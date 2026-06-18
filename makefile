@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++17 -Wall -O3
 SDL_FLAGS = `sdl2-config --cflags --libs` -lSDL2_image
 
 # 'all' is the default target. It tells Make to build both executables.
-all: UCIClient engine createKeys netClient
+all: UCIClient engine createKeys netClient matchManager
 
 createKeys: createKeys.o openBook.o
 	$(CXX) $(CXXFLAGS) -o build/createKeys objects/createKeys.o objects/openBook.o
@@ -20,6 +20,12 @@ debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/
 # Compile the GUI
 UCIClient: UCIClient.o physics.o engineProcess.o openBook.o 
 	$(CXX) $(CXXFLAGS) -o build/main objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o $(SDL_FLAGS)
+
+matchManager: matchManager.o physics.o openBook.o
+	$(CXX) $(CXXFLAGS) -o build/matchManager objects/matchManager.o objects/physics.o objects/openBook.o
+
+matchManager.o: src/matchManager.cpp
+	$(CXX) $(CXXFLAGS) -c -o objects/matchManager.o src/matchManager.cpp
 
 netClient: netClient.o engineProcess.o
 	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/netClient objects/netClient.o objects/engineProcess.o
@@ -61,4 +67,4 @@ transpositionTable.o: src/transpositionTable.cpp
 # Clean up both executables
 clean:
 	rm -f objects/*.o
-	rm -f build/main build/engine build/createKeys
+	rm -f build/main build/engine build/createKeys build/netClinet build/matchManager

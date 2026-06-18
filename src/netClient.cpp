@@ -7,7 +7,7 @@ int main(int argc, char **argv)
     char *ipAddress = NULL;
     std::string pathToEngine = "./engine";
     if (argc == 1) {
-        std::cerr << "usage: <" << argv[0] << "> -p <port\n";
+        std::cerr << "usage: <" << argv[0] << " -p <port>\n";
     }
     for (int i = 0; i < argc; ++i) {
         std::string s = std::string(argv[i]);

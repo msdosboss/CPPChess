@@ -6,5 +6,9 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
+
+void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color);
 
 #endif // #ifndef __MATCH_MANAGER_HPP__
