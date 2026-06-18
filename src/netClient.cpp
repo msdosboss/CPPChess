@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     EngineProcess engine(pathToEngine);
 
     Packet sendPacket = {0};
+
     while (true) {
         struct Packet local = recvPacket.load();
         if (engine.hasData()) {
@@ -70,6 +71,7 @@ int main(int argc, char **argv)
         if (std::string(local.str) == "bye") {
             break;
         }
+        std::this_thread::sleep_for(std::chrono::seconds(1)); //small hack: avoid cpu busy wait
     }
 
     if (serverThread.joinable()) {
