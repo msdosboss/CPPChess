@@ -19,17 +19,25 @@ int main(int argc, char **argv) {
     std::atomic<bool> engineOneReady = false;
     std::atomic<bool> engineTwoReady = false;
     std::atomic<int> turnState;
+    std::atomic<bool> gameOver = false;
     struct BoardState state;
     
     fenToBoardState(fen, std::ref(state));
     turnState = state.sideToMove;
 
-    engineOneThread = std::thread(engineThread, std::ref(engineOneReady), std::ref(turnState), WHITE);
-    engineTwoThread = std::thread(engineThread, std::ref(engineTwoReady), std::ref(turnState), BLACK);
+    engineOneThread = std::thread(engineThread, std::ref(engineOneReady), std::ref(turnState), WHITE, std::ref(gameOver));
+    engineTwoThread = std::thread(engineThread, std::ref(engineTwoReady), std::ref(turnState), BLACK, std::ref(gameOver));
+
+    if(engineOneThread.joinable()){
+        engineOneThread.join();
+    }
+    if(engineTwoThread.joinable()){
+        engineTwoThread.join();
+    }
 
 }
 
-void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color) {
+void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color, std::atomic<bool> gameOver) {
     int sockDesc = -1;
     if ((sockDesc = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         std::cerr << "Failed to create socket in engineThread: color = " << color << std::endl;
@@ -39,7 +47,12 @@ void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnStat
     
     while (true) {
         std::unique_lock lk(m);
-        cv.wait(lk, [color, &turnState]{ return color == turnState; }); //my turn
+        cv.wait(lk, [color, &turnState, &gameOver]{ 
+                return color == turnState || gameOver; 
+        }); //my turn
+        if(gameOver){
+            break;
+        }
 
         //send move out
         //await engine response
@@ -47,7 +60,7 @@ void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnStat
 
 
         lk.unlock();
-        cv.notify_one();
+        cv.notify_all();
 
         //break;
 
