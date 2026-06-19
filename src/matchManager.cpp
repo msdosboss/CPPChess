@@ -16,10 +16,10 @@ int main(int argc, char **argv) {
 
     std::thread engineOneThread;
     std::thread engineTwoThread;
-    std::atomic<bool> engineOneReady = false;
-    std::atomic<bool> engineTwoReady = false;
-    std::atomic<int> turnState;
-    std::atomic<bool> gameOver = false;
+    bool engineOneReady = false;
+    bool engineTwoReady = false;
+    int turnState;
+    bool gameOver = false;
     struct BoardState state;
     
     fenToBoardState(fen, std::ref(state));
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
 }
 
-void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color, std::atomic<bool> gameOver) {
+void engineThread(bool& readyFlag, const int& turnState, int color, bool gameOver) {
     int sockDesc = -1;
     if ((sockDesc = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         std::cerr << "Failed to create socket in engineThread: color = " << color << std::endl;

@@ -9,6 +9,6 @@
 #include <mutex>
 #include <condition_variable>
 
-void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color, std::atomic<bool> gameOver);
+void engineThread(bool& readyFlag, const int& turnState, int color, bool& gameOver);
 
 #endif // #ifndef __MATCH_MANAGER_HPP__
