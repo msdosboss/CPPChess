@@ -44,7 +44,10 @@ int main(int argc, char **argv)
     };
     char home[] = "127.0.0.1";
     if (ipAddress == NULL) ipAddress = home;
-    inet_pton(AF_INET, ipAddress, &serverAddress.sin_addr);
+    if (inet_pton(AF_INET, ipAddress, &serverAddress.sin_addr) != 1) { //returns 1 on success
+        std::cerr << "Failed to convert provided IP address" << std::endl;
+        return -1;
+    }
     if (connect(sockDesc, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == -1) {
         std::cerr << "Failed to connect with socket." << std::endl;
         return -1;
