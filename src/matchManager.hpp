@@ -5,6 +5,7 @@
 #include <thread>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sstream>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>

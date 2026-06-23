@@ -3,6 +3,7 @@
 //std::mutex m; //refactored the globals out
 //std::condition_variable cv;
 std::string UCIResponse;
+bool responseReady = false;
 
 int main(int argc, char **argv) {
     std::string fen = STARTFEN;
@@ -45,6 +46,26 @@ int main(int argc, char **argv) {
         threadSyncMutex,
         mutexCondition
     );
+
+    while(true){
+        std::unique_lock lk(m);
+        cv.wait(lk, []{ return responseReady;});
+        if(UCIResponse.find("bestmove") != std::string::npos){
+            std::istringstream ss(UCIResponse);
+            std::string token;
+            //Skip "bestmove"
+            ss >> token;
+            //token equals move ie "e2e4"
+            ss >> token;
+
+            Move engineMove = strMoveToMove(token, state);
+
+            UndoState undo;
+            makeMove(state, engineMove, undo);
+            responseReady = false;
+            turnState = state.sideToMove;
+        }
+    }
 
     if(engineOneThread.joinable()){
         engineOneThread.join();
@@ -93,7 +114,9 @@ void engineThread(
         //send move out
         //await engine response
         //send received move to main thread
-
+        responseReady = true;
+        cv.notify_all();
+        cv.wait(lk, []{ return !responseReady;});
 
         lk.unlock();
         cv.notify_all();
