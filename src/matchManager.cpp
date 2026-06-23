@@ -130,7 +130,7 @@ void engineThread(
     socklen_t connSizeInfo = sizeof(clientConnInfo); //will be overwritten by accept()
     //At some point we probably want to make this a non-blocking loop
     //because we want to be able to abort without waiting for engines to connect
-    accept(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo); //block until connection
+    int clientDesc = accept(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo); //block until connection
     //Could output the contents of clientConnInfo for logging / connection debug
     
     while (true) {
@@ -150,14 +150,14 @@ void engineThread(
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
-        send(sockDesc, buf, PACKET_STR_SIZE, 0);
+        send(clientDesc, buf, PACKET_STR_SIZE, 0);
         cmd = "go";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
-        send(sockDesc, buf, PACKET_STR_SIZE, 0);
+        send(clientDesc, buf, PACKET_STR_SIZE, 0);
         //await engine response
-        int bytesRead = recv(sockDesc, buf, PACKET_STR_SIZE - 1, 0);
+        int bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
         if(bytesRead <= 0){
             break;
         }
