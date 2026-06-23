@@ -34,8 +34,8 @@ int main(int argc, char **argv) {
         std::ref(turnState),
         WHITE,
         std::ref(gameOver),
-        threadSyncMutex,
-        mutexCondition
+        std::ref(threadSyncMutex),
+        std::ref(mutexCondition)
     );
     engineTwoThread = std::thread(
         engineThread,
@@ -43,13 +43,13 @@ int main(int argc, char **argv) {
         std::ref(turnState),
         BLACK,
         std::ref(gameOver),
-        threadSyncMutex,
-        mutexCondition
+        std::ref(threadSyncMutex),
+        std::ref(mutexCondition)
     );
 
     while(true){
-        std::unique_lock lk(m);
-        cv.wait(lk, []{ return responseReady;});
+        std::unique_lock lk(threadSyncMutex);
+        mutexCondition.wait(lk, []{ return responseReady;});
         if(UCIResponse.find("bestmove") != std::string::npos){
             std::istringstream ss(UCIResponse);
             std::string token;
@@ -81,8 +81,8 @@ void engineThread(
     const std::atomic<int>& turnState,
     int color,
     std::atomic<bool>& gameOver,
-    std::mutex m,
-    std::condition_variable cv
+    std::mutex& m,
+    std::condition_variable& cv
 ) {
     int sockDesc = -1;
     if ((sockDesc = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -93,13 +93,13 @@ void engineThread(
         .sin_port = htons(ENGINE_LISTEN_PORT[color]), //Color *must* be 0 or 1 (white, black)
         .sin_addr = {.s_addr = INADDR_ANY} //(man 7 ip)
     };
-    bind(sockDesc, listenAddressOne, sizeof(listenAddressOne));
+    bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
 
     const int connectionBacklogLimit = 1;
     listen(sockDesc, connectionBacklogLimit);
     struct sockaddr_in clientConnInfo; //filled in with call to accept()
     socklen_t connSizeInfo = sizeof(clientConnInfo); //will be overwritten by accept()
-    accept(sockDesc, &clientConnInfo, &connSizeInfo); //block until connection
+    accept(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo); //block until connection
     //Could output the contents of clientConnInfo for logging / connection debug
     
     while (true) {
