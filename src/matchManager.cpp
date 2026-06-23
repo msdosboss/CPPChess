@@ -155,20 +155,18 @@ void engineThread(
         //send Go command
         send(sockDesc, buf, PACKET_STR_SIZE, 0);
         //await engine response
-        recv(sockDesc, buf, PACKET_STR_SIZE, 0);
+        int bytesRead = recv(sockDesc, buf, PACKET_STR_SIZE - 1, 0);
+        if(bytesRead <= 0){
+            break;
+        }
+        //ensure std::string cast wont pickup garbage
+        buf[bytesRead] = '\0';
         lk.lock(); //This ensure that it is safe to write to the global UCIResponse
         //send received move to main thread
         UCIResponse = std::string(buf);
         responseReady = true;
         lk.unlock();
         cv.notify_all();
-        cv.wait(lk, []{ return !responseReady;});
-
-        lk.unlock();
-        cv.notify_all();
-
-        //break;
-
     }
 }
 

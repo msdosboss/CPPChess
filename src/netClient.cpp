@@ -90,11 +90,12 @@ void serverListener(const int socketFD, std::atomic<bool>& recvFlag, std::atomic
         struct Packet localPacket = recvPacket.load();
         struct Packet localDiff = localPacket;
         char buf[PACKET_STR_SIZE];
-        int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE, 0);
+        int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
         if (bytesRead <= 0) {
             //Server disconnected or error occurred
             break;
         }
+        buf[bytesRead] = '\0';
         recvFlag = true;
 
         do {
