@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
         } 
     }
 
+    std::thread userCLIThread;
     std::thread engineOneThread;
     std::thread engineTwoThread;
     std::atomic<bool> engineOneReady = false;
@@ -28,6 +29,12 @@ int main(int argc, char **argv) {
     fenToBoardState(fen, std::ref(state));
     turnState = state.sideToMove;
 
+    userCLIThread = std::thread(
+        CLIThread,
+        std::ref(gameOver),
+        std::ref(threadSyncMutex),
+        std::ref(mutexCondition)        
+    );
     engineOneThread = std::thread(
         engineThread,
         std::ref(engineOneReady),
@@ -49,7 +56,11 @@ int main(int argc, char **argv) {
 
     while(true){
         std::unique_lock lk(threadSyncMutex);
-        mutexCondition.wait(lk, []{ return responseReady;});
+        mutexCondition.wait(lk, [&gameOver]{ return gameOver || responseReady;});
+        if(gameOver){
+            lk.unlock();
+            break;
+        }
         if(UCIResponse.find("bestmove") != std::string::npos){
             std::istringstream ss(UCIResponse);
             std::string token;
@@ -62,9 +73,12 @@ int main(int argc, char **argv) {
 
             UndoState undo;
             makeMove(state, engineMove, undo);
+            UCIResponse = ""; //Clear UCIResponse
             responseReady = false;
             turnState = state.sideToMove;
         }
+        lk.unlock();
+        mutexCondition.notify_all();
     }
 
     if(engineOneThread.joinable()){
@@ -72,6 +86,9 @@ int main(int argc, char **argv) {
     }
     if(engineTwoThread.joinable()){
         engineTwoThread.join();
+    }
+    if(userCLIThread.joinable()){
+        userCLIThread.join();
     }
 
 }
@@ -107,12 +124,14 @@ void engineThread(
         cv.wait(lk, [color, &turnState, &gameOver]{ 
                 return color == turnState || gameOver; 
         }); //my turn
+        lk.unlock(); //This allows main thread to continue to act
         if(gameOver){
             break;
         }
 
         //send move out
         //await engine response
+        lk.lock(); //This ensure that it is safe to write to the global UCIResponse
         //send received move to main thread
         responseReady = true;
         cv.notify_all();
@@ -124,5 +143,21 @@ void engineThread(
         //break;
 
     }
+}
 
+void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv){
+    while(true){
+        std::string userInput;
+        std::cin >> userInput;
+        if(userInput == "abort"){
+            std::unique_lock lk(m);
+            gameOver = true;
+            lk.unlock();
+            cv.notify_all();
+            break;
+        }
+        else{
+            std::cout << "Unknown Coammand: " << userInput << std::endl;
+        }
+    }
 }

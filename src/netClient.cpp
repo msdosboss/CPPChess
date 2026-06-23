@@ -13,7 +13,6 @@ int main(int argc, char **argv)
         std::string s = std::string(argv[i]);
         if (s == "-p") {
             port = argv[i+1];
-            break;
         } 
         else if (s == "-a") {
             pathToEngine = std::string(argv[i+1]);
@@ -74,7 +73,8 @@ int main(int argc, char **argv)
         if (std::string(local.str) == "bye") {
             break;
         }
-        std::this_thread::sleep_for(std::chrono::seconds(1)); //small hack: avoid cpu busy wait
+        //Took this from seconds to milliseconds because 1 second is to long for engine
+        std::this_thread::sleep_for(std::chrono::milliseconds(1)); //small hack: avoid cpu busy wait
     }
 
     if (serverThread.joinable()) {
@@ -90,12 +90,16 @@ void serverListener(const int socketFD, std::atomic<bool>& recvFlag, std::atomic
         struct Packet localPacket = recvPacket.load();
         struct Packet localDiff = localPacket;
         char buf[PACKET_STR_SIZE];
-        recv(socketFD, (void *) buf, PACKET_STR_SIZE, 0);
+        int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE, 0);
+        if (bytesRead <= 0) {
+            //Server disconnected or error occurred
+            break;
+        }
         recvFlag = true;
 
         do {
             localDiff = localPacket;
-            memcpy(buf, localDiff.str, PACKET_STR_SIZE);
+            memcpy(localDiff.str, buf, PACKET_STR_SIZE);
         } while (recvPacket.compare_exchange_weak(localPacket, localDiff));
         if (std::string(localPacket.str) == "bye") {
             break;
