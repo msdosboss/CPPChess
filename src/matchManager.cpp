@@ -41,6 +41,7 @@ int main(int argc, char **argv) {
         std::ref(turnState),
         WHITE,
         std::ref(gameOver),
+        std::ref(state),
         std::ref(threadSyncMutex),
         std::ref(mutexCondition)
     );
@@ -50,6 +51,7 @@ int main(int argc, char **argv) {
         std::ref(turnState),
         BLACK,
         std::ref(gameOver),
+        std::ref(state),
         std::ref(threadSyncMutex),
         std::ref(mutexCondition)
     );
@@ -59,6 +61,7 @@ int main(int argc, char **argv) {
         mutexCondition.wait(lk, [&gameOver]{ return gameOver || responseReady;});
         if(gameOver){
             lk.unlock();
+            //Dont need to notify because CLIThread already woke up other threads
             break;
         }
         if(UCIResponse.find("bestmove") != std::string::npos){
@@ -76,6 +79,14 @@ int main(int argc, char **argv) {
             UCIResponse = ""; //Clear UCIResponse
             responseReady = false;
             turnState = state.sideToMove;
+            MoveList legalMoves = generateMoves(state, state.sideToMove);
+            //Checks if game is over
+            if(legalMoves.count == 0){
+                gameOver = true;
+                lk.unlock();
+                mutexCondition.notify_all();
+                break;
+            }
         }
         lk.unlock();
         mutexCondition.notify_all();
@@ -98,6 +109,7 @@ void engineThread(
     const std::atomic<int>& turnState,
     int color,
     std::atomic<bool>& gameOver,
+    BoardState& state,
     std::mutex& m,
     std::condition_variable& cv
 ) {
@@ -129,11 +141,26 @@ void engineThread(
             break;
         }
 
-        //send move out
+        lk.lock();
+        std::string cmd = createPositionCmd(state);
+        lk.unlock();
+        char buf[PACKET_STR_SIZE];
+        std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
+        buf[PACKET_STR_SIZE - 1] = '\0';
+        //send Position command
+        send(sockDesc, buf, PACKET_STR_SIZE, 0);
+        cmd = "go";
+        std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
+        buf[PACKET_STR_SIZE - 1] = '\0';
+        //send Go command
+        send(sockDesc, buf, PACKET_STR_SIZE, 0);
         //await engine response
+        recv(sockDesc, buf, PACKET_STR_SIZE, 0);
         lk.lock(); //This ensure that it is safe to write to the global UCIResponse
         //send received move to main thread
+        UCIResponse = std::string(buf);
         responseReady = true;
+        lk.unlock();
         cv.notify_all();
         cv.wait(lk, []{ return !responseReady;});
 

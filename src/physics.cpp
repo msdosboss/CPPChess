@@ -1162,3 +1162,36 @@ std::string promotionChar(Move move){
         return "";
     }
 }
+
+std::string createPositionCmd(BoardState& boardState){
+    std::string positionCmd = "position fen ";
+    positionCmd += boardStateToFen(boardState);
+    /*if(currentMove == 0){
+        return positionCmd;
+    }
+    positionCmd += " moves ";
+    int i = 0;
+    while(i < currentMove){
+        std::string sourceSquare = squareToAlgebraic(moveHistory[i].source);
+        std::string destSquare = squareToAlgebraic(moveHistory[i].dest);
+        positionCmd += sourceSquare + destSquare;
+        int flags = moveHistory[i].flags;
+        if(flags == KNIGHTPROMO || flags == KNIGHTPROMOCAPTURE){
+            positionCmd += "n";
+        }
+        else if(flags == BISHOPPROMO || flags == BISHOPPROMOCAPTURE){
+            positionCmd += "b";
+        }
+        else if(flags == ROOKPROMO || flags == ROOKPROMOCAPTURE){
+            positionCmd += "r";
+        }
+        else if(flags == QUEENPROMO || flags == QUEENPROMOCAPTURE){
+            positionCmd += "q";
+        }
+        positionCmd +=  " ";
+        i++;
+    }*/
+
+    return positionCmd;
+
+}

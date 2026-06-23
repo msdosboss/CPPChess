@@ -22,10 +22,10 @@ UCIClient: UCIClient.o physics.o engineProcess.o openBook.o
 	$(CXX) $(CXXFLAGS) -o build/main objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o $(SDL_FLAGS)
 
 matchManager: matchManager.o physics.o openBook.o
-	$(CXX) $(CXXFLAGS) -o build/matchManager objects/matchManager.o objects/physics.o objects/openBook.o
+	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -o build/matchManager objects/matchManager.o objects/physics.o objects/openBook.o
 
 matchManager.o: src/matchManager.cpp
-	$(CXX) $(CXXFLAGS) -c -o objects/matchManager.o src/matchManager.cpp
+	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o objects/matchManager.o src/matchManager.cpp
 
 netClient: netClient.o engineProcess.o
 	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/netClient objects/netClient.o objects/engineProcess.o

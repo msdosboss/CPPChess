@@ -6,13 +6,16 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sstream>
+#include <string>
+#include <cstring>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
 
-void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color, std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv);
+void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color, std::atomic<bool>& gameOver, BoardState& state, std::mutex& m, std::condition_variable& cv);
 void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv);
 
+#define PACKET_STR_SIZE 128
 #define LISTEN_PORT_WHITE 3001
 #define LISTEN_PORT_BLACK 3002
 const int ENGINE_LISTEN_PORT[2] = {LISTEN_PORT_WHITE, LISTEN_PORT_BLACK};

@@ -25,6 +25,5 @@ public:
 };
 
 void initTexture(SDL_Renderer *rend);
-std::string createPositionCmd(BoardState& borad, Move moveHistory[], int currentMove);
 
 #endif

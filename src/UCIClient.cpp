@@ -164,7 +164,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     initZobristTable("data/zobristKeys.json");
     loadOpeningBook("data/openBook.json");
     BoardState boardState;
-    fenToBoardState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", boardState);
+    fenToBoardState(STARTFEN, boardState);
     //This position causes bug that I need to figure out
     //fenToBoardState("rnb1k1nr/ppq3pp/4pp2/3pP1NQ/2pP4/P1P5/2P2PPP/R1B1KB1R b KQkq - 1 9", boardState);
     //Slow middle game position
@@ -272,10 +272,11 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
         }
         else{
             if(!engineThinking){
-                std::string positionCmd = createPositionCmd(boardState, moveHistory, currentMove);
+                std::string positionCmd = createPositionCmd(boardState);
                 engine.sendCommand(positionCmd);
                 //engine.sendCommand("go wtime 100000 btime 100000");
                 engine.sendCommand("go");
+                //engine.sendCommand("go depth 8");
                 engineThinking = true;
             }
             else if(engine.hasData()){
@@ -369,44 +370,12 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     return 0;
 }
 
-std::string createPositionCmd(BoardState& boardState, Move moveHistory[], int currentMove){
-    std::string positionCmd = "position fen ";
-    positionCmd += boardStateToFen(boardState);
-    /*if(currentMove == 0){
-        return positionCmd;
-    }
-    positionCmd += " moves ";
-    int i = 0;
-    while(i < currentMove){
-        std::string sourceSquare = squareToAlgebraic(moveHistory[i].source);
-        std::string destSquare = squareToAlgebraic(moveHistory[i].dest);
-        positionCmd += sourceSquare + destSquare;
-        int flags = moveHistory[i].flags;
-        if(flags == KNIGHTPROMO || flags == KNIGHTPROMOCAPTURE){
-            positionCmd += "n";
-        }
-        else if(flags == BISHOPPROMO || flags == BISHOPPROMOCAPTURE){
-            positionCmd += "b";
-        }
-        else if(flags == ROOKPROMO || flags == ROOKPROMOCAPTURE){
-            positionCmd += "r";
-        }
-        else if(flags == QUEENPROMO || flags == QUEENPROMOCAPTURE){
-            positionCmd += "q";
-        }
-        positionCmd +=  " ";
-        i++;
-    }*/
-
-    return positionCmd;
-
-}
 
 int main(){ 
     SDL_Window *wind = initDisplay(WIDTH, HEIGHT, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 0);
     SDL_Renderer *rend = initRender(wind);
     
-    int playerColor = BLACK;
+    int playerColor = WHITE;
     initBoardRect(); 
     initTexture(rend);
     
