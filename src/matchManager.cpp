@@ -87,9 +87,9 @@ int main(int argc, char **argv) {
                 mutexCondition.notify_all();
                 break;
             }
+            lk.unlock();
+            mutexCondition.notify_all();
         }
-        lk.unlock();
-        mutexCondition.notify_all();
     }
 
     if(engineOneThread.joinable()){
@@ -128,6 +128,8 @@ void engineThread(
     listen(sockDesc, connectionBacklogLimit);
     struct sockaddr_in clientConnInfo; //filled in with call to accept()
     socklen_t connSizeInfo = sizeof(clientConnInfo); //will be overwritten by accept()
+    //At some point we probably want to make this a non-blocking loop
+    //because we want to be able to abort without waiting for engines to connect
     accept(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo); //block until connection
     //Could output the contents of clientConnInfo for logging / connection debug
     
