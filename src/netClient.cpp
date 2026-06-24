@@ -79,12 +79,13 @@ int main(int argc, char **argv)
             sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
             send(sockDesc, (void *) sendPacket.str, PACKET_STR_SIZE, 0);
         }
-        else if (recvFlag) {
-            engine.sendCommand(std::string(recvPacket.str));
-            recvFlag = false;
-        }
         if (std::string(recvPacket.str) == "bye") {
             break;
+        }
+        if (recvFlag) {
+            std::cout << "Sending: " << std::string(recvPacket.str) << "to engine" << std::endl;
+            engine.sendCommand(std::string(recvPacket.str));
+            recvFlag = false;
         }
         lk.unlock();
         //Took this from seconds to milliseconds because 1 second is to long for engine
@@ -113,6 +114,7 @@ void serverListener(
                 break;
             }
             buf[bytesRead] = '\0';
+            std::cout << "recv loaded " << std::string(buf) << std::endl;
             recvFlag = true;
             std::unique_lock lk(m);
             //lk.lock();
