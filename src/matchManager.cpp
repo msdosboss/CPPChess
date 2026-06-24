@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
     while(true){
         std::unique_lock lk(threadSyncMutex);
-        mutexCondition.wait(lk, [&gameOver]{ return gameOver || responseReady;});
+        mutexCondition.wait(lk, [&gameOver, &responseReady]{ return gameOver || responseReady;});
         if(gameOver){
             lk.unlock();
             //Dont need to notify because CLIThread already woke up other threads
