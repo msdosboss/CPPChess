@@ -115,6 +115,7 @@ void serverListener(
             }
             buf[bytesRead] = '\0';
             std::cout << "recv loaded " << std::string(buf) << std::endl;
+            std::cout << "bytesRead = " << bytesRead << std::endl;
             recvFlag = true;
             std::unique_lock lk(m);
             //lk.lock();
