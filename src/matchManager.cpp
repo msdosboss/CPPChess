@@ -171,6 +171,10 @@ void engineThread(
         std::cerr << "matchManager engine thread woken up, color=" << color << std::endl;
         lk.unlock(); //This allows main thread to continue to act
         if(gameOver){
+            char buf[] = "bye";
+            send(clientDesc, buf, sizeof(buf), MSG_DONTWAIT);
+            close(clientDesc); //this technically has a return value
+                //to indicate failure, but it's dumb
             break;
         }
 
