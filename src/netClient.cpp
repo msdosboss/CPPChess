@@ -55,20 +55,24 @@ int main(int argc, char **argv)
 
     std::mutex threadMutex;
     
-    std::thread serverThread(
-        serverListener,
-        sockDesc,
-        std::ref(recvFlag),
-        std::ref(recvPacket),
-        std::ref(threadMutex)
-    );
+    std::thread serverThread;
+    try {
+        serverThread = std::thread(
+            serverListener,
+            sockDesc,
+            std::ref(recvFlag),
+            std::ref(recvPacket),
+            std::ref(threadMutex)
+        );
+    } catch (std::system_error& e) {
+        std::cerr << "Blew up at server thread creation" << std::endl;
+        return -1;
+    }
     EngineProcess engine(pathToEngine);
-
     Packet sendPacket = {0};
 
     while (true) {
         std::unique_lock lk(threadMutex);
-        lk.lock();
         if (engine.hasData()) {
             std::string engineResponse = engine.receiveCommand();
             strncpy(sendPacket.str, engineResponse.c_str(), PACKET_STR_SIZE - 1);
@@ -100,23 +104,28 @@ void serverListener(
     struct Packet& recvPacket,
     std::mutex& m
 ) {
-    while (true) {
-        std::unique_lock lk(m);
-        char buf[PACKET_STR_SIZE];
-        int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
-        if (bytesRead <= 0) {
-            //Server disconnected or error occurred
-            break;
-        }
-        buf[bytesRead] = '\0';
-        recvFlag = true;
-        lk.lock();
-        std::strncpy(recvPacket.str, buf, bytesRead + 1);
+    try {
+        while (true) {
+            char buf[PACKET_STR_SIZE];
+            int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
+            if (bytesRead <= 0) {
+                //Server disconnected or error occurred
+                break;
+            }
+            buf[bytesRead] = '\0';
+            recvFlag = true;
+            std::unique_lock lk(m);
+            //lk.lock();
+            std::strncpy(recvPacket.str, buf, bytesRead + 1);
 
-        if (std::string(recvPacket.str) == "bye") {
+            if (std::string(recvPacket.str) == "bye") {
+                lk.unlock();
+                break;
+            }
             lk.unlock();
-            break;
         }
-        lk.unlock();
+    } catch (std::system_error& e) {
+        std::cerr << "Blew up in serverListener" << std::endl;
+        std::exit(-1);
     }
 }

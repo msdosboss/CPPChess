@@ -128,6 +128,8 @@ void engineThread(
         .sin_port = htons(ENGINE_LISTEN_PORT[color]), //Color *must* be 0 or 1 (white, black)
         .sin_addr = {.s_addr = INADDR_ANY} //(man 7 ip)
     };
+    const short int reuse = 1;
+    setsockopt(sockDesc, SOL_SOCKET, SO_REUSEADDR, (void *) &reuse, sizeof(reuse));
     const int res = bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
     if (res == -1) {
         std::cerr << "Failed to bind socket. Errno=" << errno << std::endl;
@@ -144,7 +146,7 @@ void engineThread(
     int clientDesc = -1;
     do {
         if (gameOver) { return; }
-        clientDesc = accept4(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo, SOCK_NONBLOCK); //no longer blocks until connection
+        clientDesc = accept4(sockDesc, (struct sockaddr *) &clientConnInfo, &connSizeInfo, SOCK_NONBLOCK); //no longer blocks until connection
         if (clientDesc == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
@@ -157,12 +159,16 @@ void engineThread(
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); //TODO - magic number
     } while (clientDesc == -1);
     //Could output the contents of clientConnInfo for logging / connection debug
+    std::cerr << "Client successfully connected: "
+        << ntohs(clientConnInfo.sin_addr.s_addr)
+        << ":" << ntohs(clientConnInfo.sin_port) << std::endl;
     
     while (true) {
         std::unique_lock lk(m);
         cv.wait(lk, [color, &turnState, &gameOver]{ 
                 return color == turnState || gameOver; 
         }); //my turn
+        std::cerr << "matchManager engine thread woken up, color=" << color << std::endl;
         lk.unlock(); //This allows main thread to continue to act
         if(gameOver){
             break;
@@ -193,6 +199,7 @@ void engineThread(
                    //as an atomic value to the threads that need to access it?
         //send received move to main thread
         UCIResponse = std::string(buf);
+        std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
         lk.unlock();
         cv.notify_all();
