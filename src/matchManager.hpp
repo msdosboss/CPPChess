@@ -12,7 +12,17 @@
 #include <mutex>
 #include <condition_variable>
 
-void engineThread(std::atomic<bool>& readyFlag, const std::atomic<int>& turnState, int color, std::atomic<bool>& gameOver, BoardState& state, std::mutex& m, std::condition_variable& cv);
+void engineThread(
+    std::atomic<bool>& readyFlag,
+    const std::atomic<int>& turnState,
+    int color,
+    std::atomic<bool>& gameOver,
+    BoardState& state,
+    std::string& UCIResponse,
+    bool& responseReady,
+    std::mutex& m,
+    std::condition_variable& cv
+);
 void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv);
 
 #define PACKET_STR_SIZE 128

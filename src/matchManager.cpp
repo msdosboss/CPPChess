@@ -2,8 +2,6 @@
 
 //std::mutex m; //refactored the globals out
 //std::condition_variable cv;
-std::string UCIResponse;
-bool responseReady = false;
 
 int main(int argc, char **argv) {
     std::string fen = STARTFEN;
@@ -25,6 +23,8 @@ int main(int argc, char **argv) {
     struct BoardState state;
     std::mutex threadSyncMutex;
     std::condition_variable mutexCondition;
+    std::string UCIResponse; //locked behind the mutex condition
+    bool responseReady = false; //locked behind the mutex condition
     
     fenToBoardState(fen, std::ref(state));
     turnState = state.sideToMove;
@@ -42,6 +42,8 @@ int main(int argc, char **argv) {
         WHITE,
         std::ref(gameOver),
         std::ref(state),
+        std::ref(UCIResponse),
+        std::ref(responseReady),
         std::ref(threadSyncMutex),
         std::ref(mutexCondition)
     );
@@ -52,6 +54,8 @@ int main(int argc, char **argv) {
         BLACK,
         std::ref(gameOver),
         std::ref(state),
+        std::ref(UCIResponse),
+        std::ref(responseReady),
         std::ref(threadSyncMutex),
         std::ref(mutexCondition)
     );
@@ -110,6 +114,8 @@ void engineThread(
     int color,
     std::atomic<bool>& gameOver,
     BoardState& state,
+    std::string& UCIResponse,
+    bool& responseReady,
     std::mutex& m,
     std::condition_variable& cv
 ) {
@@ -137,6 +143,7 @@ void engineThread(
     //I'll leave the choice of how to go about that undecided for now.
     int clientDesc = -1;
     do {
+        if (gameOver) { return; }
         clientDesc = accept4(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo, SOCK_NONBLOCK); //no longer blocks until connection
         if (clientDesc == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
