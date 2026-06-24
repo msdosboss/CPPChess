@@ -122,7 +122,10 @@ void engineThread(
         .sin_port = htons(ENGINE_LISTEN_PORT[color]), //Color *must* be 0 or 1 (white, black)
         .sin_addr = {.s_addr = INADDR_ANY} //(man 7 ip)
     };
-    bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
+    const int res = bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
+    if (res == -1) {
+        std::cerr << "Failed to bind socket. Errno=" << errno << std::endl;
+    }
 
     const int connectionBacklogLimit = 1;
     listen(sockDesc, connectionBacklogLimit);
@@ -130,7 +133,22 @@ void engineThread(
     socklen_t connSizeInfo = sizeof(clientConnInfo); //will be overwritten by accept()
     //At some point we probably want to make this a non-blocking loop
     //because we want to be able to abort without waiting for engines to connect
-    int clientDesc = accept(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo); //block until connection
+    //-- To abort, we should probably be checking against some abort flag in the do-while, no?
+    //I'll leave the choice of how to go about that undecided for now.
+    int clientDesc = -1;
+    do {
+        clientDesc = accept4(sockDesc, (struct sockaddr *)&clientConnInfo, &connSizeInfo, SOCK_NONBLOCK); //no longer blocks until connection
+        if (clientDesc == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            } else {
+                std::cerr << "Engine Thread (color=" << color << ") failed accept(), errno=" << errno << std::endl;
+                return; //Probably should gracefully close down the threads and such at some point
+                //For now, just returning early. TODO
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); //TODO - magic number
+    } while (clientDesc == -1);
     //Could output the contents of clientConnInfo for logging / connection debug
     
     while (true) {
@@ -164,6 +182,8 @@ void engineThread(
         //ensure std::string cast wont pickup garbage
         buf[bytesRead] = '\0';
         lk.lock(); //This ensure that it is safe to write to the global UCIResponse
+                   //Would it make sense to just make UCIResponse non-global, and passed
+                   //as an atomic value to the threads that need to access it?
         //send received move to main thread
         UCIResponse = std::string(buf);
         responseReady = true;
@@ -176,7 +196,7 @@ void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variab
     while(true){
         std::string userInput;
         std::cin >> userInput;
-        if(userInput == "abort"){
+        if(userInput == "abort" || std::cin.eof()){
             std::unique_lock lk(m);
             gameOver = true;
             lk.unlock();
@@ -184,7 +204,7 @@ void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variab
             break;
         }
         else{
-            std::cout << "Unknown Coammand: " << userInput << std::endl;
+            std::cout << "Unknown Command: " << userInput << std::endl;
         }
     }
 }
