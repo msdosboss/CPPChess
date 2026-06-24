@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     }
 
 
-    std::atomic<Packet> recvPacket;
+    Packet recvPacket;
     std::atomic<bool> recvFlag = false;
 
     int sockDesc = socket(AF_INET, SOCK_STREAM, 0);
@@ -53,26 +53,36 @@ int main(int argc, char **argv)
     }
         
 
+    std::mutex threadMutex;
     
-    std::thread serverThread(serverListener, sockDesc, std::ref(recvFlag), std::ref(recvPacket));
+    std::thread serverThread(
+        serverListener,
+        sockDesc,
+        std::ref(recvFlag),
+        std::ref(recvPacket),
+        std::ref(threadMutex)
+    );
     EngineProcess engine(pathToEngine);
 
     Packet sendPacket = {0};
 
     while (true) {
-        struct Packet local = recvPacket.load();
+        std::unique_lock lk(threadMutex);
+        lk.lock();
         if (engine.hasData()) {
-            strncpy(sendPacket.str, engine.receiveCommand().c_str(), PACKET_STR_SIZE - 1);
+            std::string engineResponse = engine.receiveCommand();
+            strncpy(sendPacket.str, engineResponse.c_str(), PACKET_STR_SIZE - 1);
             sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
             send(sockDesc, (void *) sendPacket.str, PACKET_STR_SIZE, 0);
         }
         else if (recvFlag) {
-            engine.sendCommand(std::string(local.str));
+            engine.sendCommand(std::string(recvPacket.str));
             recvFlag = false;
         }
-        if (std::string(local.str) == "bye") {
+        if (std::string(recvPacket.str) == "bye") {
             break;
         }
+        lk.unlock();
         //Took this from seconds to milliseconds because 1 second is to long for engine
         std::this_thread::sleep_for(std::chrono::milliseconds(1)); //small hack: avoid cpu busy wait
     }
@@ -87,11 +97,11 @@ int main(int argc, char **argv)
 void serverListener(
     const int socketFD,
     std::atomic<bool>& recvFlag,
-    std::atomic<struct Packet>& recvPacket
+    struct Packet& recvPacket,
+    std::mutex& m
 ) {
     while (true) {
-        struct Packet localPacket = recvPacket.load();
-        struct Packet localDiff = localPacket;
+        std::unique_lock lk(m);
         char buf[PACKET_STR_SIZE];
         int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
         if (bytesRead <= 0) {
@@ -100,13 +110,13 @@ void serverListener(
         }
         buf[bytesRead] = '\0';
         recvFlag = true;
+        lk.lock();
+        std::strncpy(recvPacket.str, buf, bytesRead + 1);
 
-        do {
-            localDiff = localPacket;
-            memcpy(localDiff.str, buf, PACKET_STR_SIZE);
-        } while (recvPacket.compare_exchange_weak(localPacket, localDiff));
-        if (std::string(localPacket.str) == "bye") {
+        if (std::string(recvPacket.str) == "bye") {
+            lk.unlock();
             break;
         }
+        lk.unlock();
     }
 }
