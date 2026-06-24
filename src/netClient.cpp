@@ -27,10 +27,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-
-    Packet recvPacket;
-    std::atomic<bool> recvFlag = false;
-
     int sockDesc = socket(AF_INET, SOCK_STREAM, 0);
     if (sockDesc == -1) {
         std::cerr << "Failed to create socket." << std::endl;
@@ -52,22 +48,19 @@ int main(int argc, char **argv)
         return -1;
     }
         
-
+    //threadMutex locks access to recvPacket and recvFlag
     std::mutex threadMutex;
-    
+    Packet recvPacket;
+    std::atomic<bool> recvFlag = false;
     std::thread serverThread;
-    try {
-        serverThread = std::thread(
-            serverListener,
-            sockDesc,
-            std::ref(recvFlag),
-            std::ref(recvPacket),
-            std::ref(threadMutex)
-        );
-    } catch (std::system_error& e) {
-        std::cerr << "Blew up at server thread creation" << std::endl;
-        return -1;
-    }
+
+    serverThread = std::thread(
+        serverListener,
+        sockDesc,
+        std::ref(recvFlag),
+        std::ref(recvPacket),
+        std::ref(threadMutex)
+    );
     EngineProcess engine(pathToEngine);
     Packet sendPacket = {0};
 
@@ -77,7 +70,8 @@ int main(int argc, char **argv)
             std::string engineResponse = engine.receiveCommand();
             strncpy(sendPacket.str, engineResponse.c_str(), PACKET_STR_SIZE - 1);
             sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
-            send(sockDesc, (void *) sendPacket.str, PACKET_STR_SIZE, 0);
+            std::cerr << "Sending engine response of {{ " << engineResponse << " }}\n";
+            send(sockDesc, (void *) sendPacket.str, PACKET_STR_SIZE, 0); //BLOCKING
         }
         if (std::string(recvPacket.str) == "bye") {
             break;
@@ -107,7 +101,7 @@ void serverListener(
 ) {
     try {
         while (true) {
-            char buf[PACKET_STR_SIZE];
+            char buf[PACKET_STR_SIZE] = {0};
             int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
             if (bytesRead <= 0) {
                 //Server disconnected or error occurred

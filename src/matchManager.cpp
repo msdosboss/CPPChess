@@ -186,22 +186,26 @@ void engineThread(
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
         send(clientDesc, buf, PACKET_STR_SIZE, MSG_MORE);
-        cmd = "go";
+        cmd = "go_die";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
         send(clientDesc, buf, PACKET_STR_SIZE, 0);
         //await engine response
         int bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
+        std::cerr << "orca 1" << std::endl;
         if(bytesRead <= 0){
+            std::cerr << "bytesRead was zero in matchManager" << std::endl;
             break;
         }
         //ensure std::string cast wont pickup garbage
         buf[bytesRead] = '\0';
+        std::cerr << buf << std::endl;
         lk.lock(); //This ensure that it is safe to write to the global UCIResponse
                    //Would it make sense to just make UCIResponse non-global, and passed
                    //as an atomic value to the threads that need to access it?
         //send received move to main thread
+        std::cerr << "orca 2" << std::endl;
         UCIResponse = std::string(buf);
         std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
