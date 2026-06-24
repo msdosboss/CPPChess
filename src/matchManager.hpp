@@ -12,6 +12,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <unistd.h>
+#include <fcntl.h>
 
 void engineThread(
     std::atomic<bool>& readyFlag,

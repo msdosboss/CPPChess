@@ -158,6 +158,9 @@ void engineThread(
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); //TODO - magic number
     } while (clientDesc == -1);
+    int flags = fcntl(clientDesc, F_GETFL);
+    flags &= ~(O_NONBLOCK);
+    fcntl(clientDesc, F_SETFL, flags);
     //Could output the contents of clientConnInfo for logging / connection debug
     std::cerr << "Client successfully connected: "
         << ntohs(clientConnInfo.sin_addr.s_addr)
@@ -172,7 +175,7 @@ void engineThread(
         lk.unlock(); //This allows main thread to continue to act
         if(gameOver){
             char buf[] = "bye";
-            send(clientDesc, buf, sizeof(buf), MSG_DONTWAIT);
+            send(clientDesc, (void *) buf, sizeof(buf), MSG_DONTWAIT);
             close(clientDesc); //this technically has a return value
                 //to indicate failure, but it's dumb
             break;
@@ -181,22 +184,28 @@ void engineThread(
         lk.lock();
         std::string cmd = createPositionCmd(state);
         lk.unlock();
-        char buf[PACKET_STR_SIZE];
+
+        char buf[PACKET_STR_SIZE] = {0};
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
-        send(clientDesc, buf, PACKET_STR_SIZE, MSG_MORE);
-        cmd = "go_die";
+        std::cerr << "DEBUG: transmitting {" << std::string(buf) << "}\n";
+        send(clientDesc, (void *) buf, PACKET_STR_SIZE, MSG_MORE);
+        cmd = "go";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
-        send(clientDesc, buf, PACKET_STR_SIZE, 0);
+        std::cerr << "DEBUG2: transmitting {" << std::string(buf) << "}\n";
+        send(clientDesc, (void *) buf, PACKET_STR_SIZE, 0);
         //await engine response
         int bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
         std::cerr << "orca 1" << std::endl;
-        if(bytesRead <= 0){
+        if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
-            break;
+            return;
+        } else if (bytesRead == -1) {
+            std::cerr << "recv call failed with errno=" << errno << std::endl;
+            return;
         }
         //ensure std::string cast wont pickup garbage
         buf[bytesRead] = '\0';

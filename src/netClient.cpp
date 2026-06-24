@@ -74,6 +74,7 @@ int main(int argc, char **argv)
             send(sockDesc, (void *) sendPacket.str, PACKET_STR_SIZE, 0); //BLOCKING
         }
         if (std::string(recvPacket.str) == "bye") {
+            std::cerr << "exiting: received shutdown command" << std::endl;
             break;
         }
         if (recvFlag) {
@@ -105,6 +106,7 @@ void serverListener(
             int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
             if (bytesRead <= 0) {
                 //Server disconnected or error occurred
+                std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
                 break;
             }
             buf[bytesRead] = '\0';
