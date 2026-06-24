@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
 
             UndoState undo;
             makeMove(state, engineMove, undo);
+            //std::cerr << "After makeMove call: " << boardStateToFen(state) << std::endl;
             UCIResponse = ""; //Clear UCIResponse
             responseReady = false;
             turnState = state.sideToMove;
@@ -121,7 +122,7 @@ void engineThread(
 ) {
     int sockDesc = -1;
     if ((sockDesc = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        std::cerr << "Failed to create socket in engineThread: color = " << color << std::endl;
+        std::cerr << "matchManager - Failed to create socket in engineThread: color = " << color << std::endl;
     }
     struct sockaddr_in listenAddressOne = {
         .sin_family = AF_INET,
@@ -132,7 +133,7 @@ void engineThread(
     setsockopt(sockDesc, SOL_SOCKET, SO_REUSEADDR, (void *) &reuse, sizeof(reuse));
     const int res = bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
     if (res == -1) {
-        std::cerr << "Failed to bind socket. Errno=" << errno << std::endl;
+        std::cerr << "matchManager - Failed to bind socket. Errno=" << errno << std::endl;
     }
 
     const int connectionBacklogLimit = 1;
@@ -151,7 +152,7 @@ void engineThread(
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
             } else {
-                std::cerr << "Engine Thread (color=" << color << ") failed accept(), errno=" << errno << std::endl;
+                std::cerr << "matchManager - Engine Thread (color=" << color << ") failed accept(), errno=" << errno << std::endl;
                 return; //Probably should gracefully close down the threads and such at some point
                 //For now, just returning early. TODO
             }
@@ -162,7 +163,7 @@ void engineThread(
     flags &= ~(O_NONBLOCK);
     fcntl(clientDesc, F_SETFL, flags);
     //Could output the contents of clientConnInfo for logging / connection debug
-    std::cerr << "Client successfully connected: "
+    std::cerr << "matchManager - Client successfully connected: "
         << ntohs(clientConnInfo.sin_addr.s_addr)
         << ":" << ntohs(clientConnInfo.sin_port) << std::endl;
     
@@ -189,22 +190,22 @@ void engineThread(
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
-        std::cerr << "DEBUG: transmitting {" << std::string(buf) << "}\n";
-        send(clientDesc, (void *) buf, PACKET_STR_SIZE, MSG_MORE);
+        std::cerr << "matchManager DEBUG: transmitting {" << std::string(buf) << "}" << std::endl;
+        send(clientDesc, (void *) buf, PACKET_STR_SIZE - 1, MSG_MORE);
         cmd = "go";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
-        std::cerr << "DEBUG2: transmitting {" << std::string(buf) << "}\n";
-        send(clientDesc, (void *) buf, PACKET_STR_SIZE, 0);
+        std::cerr << "matchManager DEBUG2: transmitting {" << std::string(buf) << "}" << std::endl;
+        send(clientDesc, (void *) buf, PACKET_STR_SIZE - 1, 0);
         //await engine response
         int bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
-        std::cerr << "orca 1" << std::endl;
+        //std::cerr << "orca 1" << std::endl;
         if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
             return;
         } else if (bytesRead == -1) {
-            std::cerr << "recv call failed with errno=" << errno << std::endl;
+            std::cerr << "matchManager recv call failed with errno=" << errno << std::endl;
             return;
         }
         //ensure std::string cast wont pickup garbage
@@ -214,7 +215,7 @@ void engineThread(
                    //Would it make sense to just make UCIResponse non-global, and passed
                    //as an atomic value to the threads that need to access it?
         //send received move to main thread
-        std::cerr << "orca 2" << std::endl;
+        //std::cerr << "orca 2" << std::endl;
         UCIResponse = std::string(buf);
         std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
