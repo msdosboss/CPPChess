@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
             lk.unlock();
             mutexCondition.notify_all();
         }
+        responseReady = false;
     }
 
     if(engineOneThread.joinable()){
@@ -199,7 +200,12 @@ void engineThread(
         std::cerr << "matchManager DEBUG2: transmitting {" << std::string(buf) << "}" << std::endl;
         send(clientDesc, (void *) buf, PACKET_STR_SIZE - 1, 0);
         //await engine response
-        int bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
+        int bytesRead;
+        do {
+            bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
+            //TODO -- can later parse the other info the engines send in here
+            //such as what the engine thought of a certain position, etc
+        } while (std::string(buf).find("bestmove") == std::string::npos);
         //std::cerr << "orca 1" << std::endl;
         if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;

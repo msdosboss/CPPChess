@@ -78,7 +78,7 @@ int main(int argc, char **argv)
             break;
         }
         if (recvFlag) {
-            std::cout << "Sending: " << std::string(recvPacket.str) << "to engine" << std::endl;
+            std::cout << "Sending: {" << std::string(recvPacket.str) << "} to engine" << std::endl;
             engine.sendCommand(std::string(recvPacket.str));
             recvFlag = false;
         }
