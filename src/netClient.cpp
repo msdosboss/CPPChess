@@ -84,8 +84,11 @@ int main(int argc, char **argv)
     return 0;
 }
 
-// Uses global state: sendPacket
-void serverListener(const int socketFD, std::atomic<bool>& recvFlag, std::atomic<struct Packet>& recvPacket) {
+void serverListener(
+    const int socketFD,
+    std::atomic<bool>& recvFlag,
+    std::atomic<struct Packet>& recvPacket
+) {
     while (true) {
         struct Packet localPacket = recvPacket.load();
         struct Packet localDiff = localPacket;
