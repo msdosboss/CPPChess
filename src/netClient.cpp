@@ -63,7 +63,7 @@ int main(int argc, char **argv)
         struct Packet local = recvPacket.load();
         if (engine.hasData()) {
             strncpy(sendPacket.str, engine.receiveCommand().c_str(), PACKET_STR_SIZE - 1);
-            sendPacket.str[127] = '\0';
+            sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
             send(sockDesc, (void *) sendPacket.str, PACKET_STR_SIZE, 0);
         }
         else if (recvFlag) {
