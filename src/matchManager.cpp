@@ -185,7 +185,7 @@ void engineThread(
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
-        send(clientDesc, buf, PACKET_STR_SIZE, 0);
+        send(clientDesc, buf, PACKET_STR_SIZE, MSG_MORE);
         cmd = "go";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
