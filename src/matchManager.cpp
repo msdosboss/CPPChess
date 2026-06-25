@@ -95,7 +95,9 @@ int main(int argc, char **argv) {
             lk.unlock();
             mutexCondition.notify_all();
         }
+        lk.lock();
         responseReady = false;
+        lk.unlock();
     }
 
     if(engineOneThread.joinable()){
@@ -170,8 +172,8 @@ void engineThread(
     
     while (true) {
         std::unique_lock lk(m);
-        cv.wait(lk, [color, &turnState, &gameOver]{ 
-                return color == turnState || gameOver; 
+        cv.wait(lk, [color, &turnState, &gameOver, &responseReady]{ 
+                return (!responseReady && color == turnState) || gameOver; 
         }); //my turn
         std::cerr << "matchManager engine thread woken up, color=" << color << std::endl;
         lk.unlock(); //This allows main thread to continue to act
@@ -184,7 +186,7 @@ void engineThread(
         }
 
         lk.lock();
-        std::string cmd = createPositionCmd(state);
+        std::string cmd = createPositionCmd(state) + "\n";
         lk.unlock();
 
         char buf[PACKET_STR_SIZE] = {0};
@@ -192,13 +194,13 @@ void engineThread(
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
         std::cerr << "matchManager DEBUG: transmitting {" << std::string(buf) << "}" << std::endl;
-        send(clientDesc, (void *) buf, PACKET_STR_SIZE - 1, MSG_MORE);
-        cmd = "go";
+        send(clientDesc, (void *) buf, cmd.length(), MSG_MORE);
+        cmd = "go\n";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
         std::cerr << "matchManager DEBUG2: transmitting {" << std::string(buf) << "}" << std::endl;
-        send(clientDesc, (void *) buf, PACKET_STR_SIZE - 1, 0);
+        send(clientDesc, (void *) buf, cmd.length(), 0);
         //await engine response
         int bytesRead;
         do {
