@@ -2,7 +2,6 @@
 #define __MATCH_MANAGER_HPP__
 
 #include "physics.hpp"
-#include "logging.hpp"
 #include <thread>
 #include <arpa/inet.h>
 #include <sys/socket.h>
