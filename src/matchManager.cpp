@@ -1,5 +1,9 @@
 #include "matchManager.hpp"
 
+///Private function signatures intended only for use in current file
+void validateSend(int sendRetVal, int expectedByteCount);
+///end private signatures
+
 //std::mutex m; //refactored the globals out
 //std::condition_variable cv;
 
@@ -188,19 +192,24 @@ void engineThread(
         lk.lock();
         std::string cmd = createPositionCmd(state) + "\n";
         lk.unlock();
+        assert(cmd.length() <= PACKET_STR_SIZE); //Need some form of bounds checking
+            //better to crash than error silently
 
         char buf[PACKET_STR_SIZE] = {0};
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
         std::cerr << "matchManager DEBUG: transmitting {" << std::string(buf) << "}" << std::endl;
-        send(clientDesc, (void *) buf, cmd.length(), MSG_MORE);
+        int bytesSent = send(clientDesc, (void *) buf, cmd.length(), MSG_MORE);
+        validateSend(bytesSent, cmd.length());
+        
         cmd = "go\n";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
         std::cerr << "matchManager DEBUG2: transmitting {" << std::string(buf) << "}" << std::endl;
-        send(clientDesc, (void *) buf, cmd.length(), 0);
+        bytesSent = send(clientDesc, (void *) buf, cmd.length(), 0);
+        validateSend(bytesSent, cmd.length());
         //await engine response
         int bytesRead;
         do {
@@ -208,7 +217,6 @@ void engineThread(
             //TODO -- can later parse the other info the engines send in here
             //such as what the engine thought of a certain position, etc
         } while (std::string(buf).find("bestmove") == std::string::npos);
-        //std::cerr << "orca 1" << std::endl;
         if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
             return;
@@ -223,7 +231,6 @@ void engineThread(
                    //Would it make sense to just make UCIResponse non-global, and passed
                    //as an atomic value to the threads that need to access it?
         //send received move to main thread
-        //std::cerr << "orca 2" << std::endl;
         UCIResponse = std::string(buf);
         std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
@@ -247,4 +254,18 @@ void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variab
             std::cout << "Unknown Command: " << userInput << std::endl;
         }
     }
+}
+
+///intended for match manager internal use only
+void validateSend(int sendRetVal, int expectedByteCount) {
+    if (sendRetVal == -1) {
+        std::cerr << "DEBUG ERROR: matchManager - failed to send cmd string. errno="
+            << errno << std::endl;
+        return;
+        //TODO - probably should have some sort of error function that shuts down
+        //all the components of the program cleanly, and can be called from anywhere.
+    } else if (sendRetVal != expectedByteCount) {
+        std::cerr << "DEBUG INFO: matchManager - socket bytes sent isn't expected value"
+            << "continuing execution..." << std::endl;
+    } else { }
 }

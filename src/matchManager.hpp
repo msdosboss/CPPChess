@@ -2,6 +2,7 @@
 #define __MATCH_MANAGER_HPP__
 
 #include "physics.hpp"
+#include "logging.hpp"
 #include <thread>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -13,6 +14,7 @@
 #include <condition_variable>
 #include <unistd.h>
 #include <fcntl.h>
+#include <cassert>
 
 void engineThread(
     std::atomic<bool>& readyFlag,
