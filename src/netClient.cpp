@@ -68,10 +68,10 @@ int main(int argc, char **argv)
         std::unique_lock lk(threadMutex);
         if (engine.hasData()) {
             std::string engineResponse = engine.receiveCommand();
-            strncpy(sendPacket.str, engineResponse.c_str(), PACKET_STR_SIZE - 1);
-            sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
+            //strncpy(sendPacket.str, engineResponse.c_str(), PACKET_STR_SIZE - 1);
+            //sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
             std::cerr << "Sending engine response of {{ " << engineResponse << " }}\n";
-            send(sockDesc, (void *) sendPacket.str, engineResponse.length(), 0); //BLOCKING
+            send(sockDesc, (void *) engineResponse.c_str(), engineResponse.length(), 0); //BLOCKING
         }
         if (std::string(recvPacket.str) == "bye") {
             std::cerr << "exiting: received shutdown command" << std::endl;

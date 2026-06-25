@@ -17,6 +17,10 @@ int main(int argc, char **argv) {
         } 
     }
 
+    //Match Manager needs to be a source of true for moves
+    generateKingAttacks();
+    generateKnightAttacks();
+
     std::thread userCLIThread;
     std::thread engineOneThread;
     std::thread engineTwoThread;
@@ -75,12 +79,21 @@ int main(int argc, char **argv) {
         if(UCIResponse.find("bestmove") != std::string::npos){
             std::istringstream ss(UCIResponse);
             std::string token;
-            //Skip "bestmove"
-            ss >> token;
+            //Skip unti we reach "bestmove"
+            //Not the cleanest fix had to add this to deal with the engine thread sending: 
+            //"info score cp 0bestmove b1c3"
+            //Should probably figure out why the engine is sending info and bestmove together
+            do{
+                ss >> token;
+            } while(token.find("bestmove") == std::string::npos);
             //token equals move ie "e2e4"
             ss >> token;
 
+            std::cerr << "move token: " << token << std::endl;
+
             Move engineMove = strMoveToMove(token, state);
+
+            std::cerr << "engineMove.src: " << engineMove.source << std::endl << "engineMove.dest: " << engineMove.dest << std::endl;
 
             UndoState undo;
             makeMove(state, engineMove, undo);
