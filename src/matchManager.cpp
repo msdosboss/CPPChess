@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
             UndoState undo;
             makeMove(state, engineMove, undo);
-            //std::cerr << "After makeMove call: " << boardStateToFen(state) << std::endl;
+            std::cerr << "After makeMove call: " << boardStateToFen(state) << std::endl;
             UCIResponse = ""; //Clear UCIResponse
             responseReady = false;
             turnState = state.sideToMove;
@@ -110,9 +110,12 @@ int main(int argc, char **argv) {
     if(engineTwoThread.joinable()){
         engineTwoThread.join();
     }
-    if(userCLIThread.joinable()){
+    /*if(userCLIThread.joinable()){
         userCLIThread.join();
-    }
+    }*/
+    //Since UCI thread can block forever on std::in we can't ensure that it will be joinable
+    //Let the OS handle it
+    userCLIThread.detach();
 
 }
 
