@@ -1101,6 +1101,8 @@ std::string boardStateToFen(BoardState& boardState){
         fen += '/';
         
     }
+    //Remove the last /
+    fen.erase(fen.length() - 1, 1);
 
     fen += ' ';
     if(boardState.sideToMove == WHITE){
