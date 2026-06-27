@@ -21,6 +21,7 @@ int main(int argc, char **argv) {
     generateKingAttacks();
     generateKnightAttacks();
 
+    std::thread userGUIThread;
     std::thread userCLIThread;
     std::thread engineOneThread;
     std::thread engineTwoThread;
@@ -36,6 +37,20 @@ int main(int argc, char **argv) {
     
     fenToBoardState(fen, std::ref(state));
     turnState = state.sideToMove;
+
+    uint32_t lightColor = 0xffffffff;
+    uint32_t darkColor = 0xff4a9627;
+
+    /*userGUIThread = std::thread(
+        renderBoard,
+        std::ref(state),
+        std::ref(gameOver),
+        darkColor,
+        lightColor,
+        "img",
+        std::ref(threadSyncMutex)
+         
+    );*/
 
     userCLIThread = std::thread(
         CLIThread,
