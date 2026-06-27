@@ -16,7 +16,7 @@
 #include <atomic>
 #include <mutex>
 
-void renderBoard(BoardState& boardState, std::atomic<bool>& isRunning, uint32_t squareDarkColor, uint32_t squareLightColor, std::string textureDir, std::mutex& m);
+void renderBoard(BoardState& boardState, std::atomic<bool>& gameOver, uint32_t squareDarkColor, uint32_t squareLightColor, std::string textureDir, std::mutex& m);
 void initTexture(SDL_Renderer *rend, std::string textureDir);
 
 #endif

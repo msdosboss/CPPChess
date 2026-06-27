@@ -21,12 +21,10 @@ int main(int argc, char **argv) {
     generateKingAttacks();
     generateKnightAttacks();
 
-    std::thread userGUIThread;
+    std::thread userMatchManagerThread;
     std::thread userCLIThread;
     std::thread engineOneThread;
     std::thread engineTwoThread;
-    std::atomic<bool> engineOneReady = false;
-    std::atomic<bool> engineTwoReady = false;
     std::atomic<int> turnState;
     std::atomic<bool> gameOver = false;
     struct BoardState state;
@@ -41,16 +39,17 @@ int main(int argc, char **argv) {
     uint32_t lightColor = 0xffffffff;
     uint32_t darkColor = 0xff4a9627;
 
-    /*userGUIThread = std::thread(
-        renderBoard,
-        std::ref(state),
+
+    userMatchManagerThread = std::thread(
+        matchManagerThread,
         std::ref(gameOver),
-        darkColor,
-        lightColor,
-        "img",
-        std::ref(threadSyncMutex)
-         
-    );*/
+        std::ref(turnState),
+        std::ref(responseReady),
+        std::ref(state),
+        std::ref(UCIResponse),
+        std::ref(threadSyncMutex),
+        std::ref(mutexCondition)        
+    );
 
     userCLIThread = std::thread(
         CLIThread,
@@ -60,7 +59,6 @@ int main(int argc, char **argv) {
     );
     engineOneThread = std::thread(
         engineThread,
-        std::ref(engineOneReady),
         std::ref(turnState),
         WHITE,
         std::ref(gameOver),
@@ -72,7 +70,6 @@ int main(int argc, char **argv) {
     );
     engineTwoThread = std::thread(
         engineThread,
-        std::ref(engineTwoReady),
         std::ref(turnState),
         BLACK,
         std::ref(gameOver),
@@ -83,55 +80,22 @@ int main(int argc, char **argv) {
         std::ref(mutexCondition)
     );
 
-    while(true){
-        std::unique_lock lk(threadSyncMutex);
-        mutexCondition.wait(lk, [&gameOver, &responseReady]{ return gameOver || responseReady;});
-        if(gameOver){
-            lk.unlock();
-            //Dont need to notify because CLIThread already woke up other threads
-            break;
-        }
-        if(UCIResponse.find("bestmove") != std::string::npos){
-            std::istringstream ss(UCIResponse);
-            std::string token;
-            //Skip unti we reach "bestmove"
-            //Not the cleanest fix had to add this to deal with the engine thread sending: 
-            //"info score cp 0bestmove b1c3"
-            //Should probably figure out why the engine is sending info and bestmove together
-            do{
-                ss >> token;
-            } while(token.find("bestmove") == std::string::npos);
-            //token equals move ie "e2e4"
-            ss >> token;
+    renderBoard(
+        std::ref(state),
+        std::ref(gameOver),
+        darkColor,
+        lightColor,
+        "img",
+        std::ref(threadSyncMutex)
+    );
 
-            std::cerr << "move token: " << token << std::endl;
+    //If game ends because of gui close
+    gameOver = true;
+    mutexCondition.notify_all();
 
-            Move engineMove = strMoveToMove(token, state);
-
-            std::cerr << "engineMove.src: " << engineMove.source << std::endl << "engineMove.dest: " << engineMove.dest << std::endl;
-
-            UndoState undo;
-            makeMove(state, engineMove, undo);
-            std::cerr << "After makeMove call: " << boardStateToFen(state) << std::endl;
-            UCIResponse = ""; //Clear UCIResponse
-            responseReady = false;
-            turnState = state.sideToMove;
-            MoveList legalMoves = generateMoves(state, state.sideToMove);
-            //Checks if game is over
-            if(legalMoves.count == 0){
-                gameOver = true;
-                lk.unlock();
-                mutexCondition.notify_all();
-                break;
-            }
-            lk.unlock();
-            mutexCondition.notify_all();
-        }
-        lk.lock();
-        responseReady = false;
-        lk.unlock();
+    if(userMatchManagerThread.joinable()){
+        userMatchManagerThread.join();
     }
-
     if(engineOneThread.joinable()){
         engineOneThread.join();
     }
@@ -148,7 +112,6 @@ int main(int argc, char **argv) {
 }
 
 void engineThread(
-    std::atomic<bool>& readyFlag,
     const std::atomic<int>& turnState,
     int color,
     std::atomic<bool>& gameOver,
@@ -167,11 +130,12 @@ void engineThread(
         .sin_port = htons(ENGINE_LISTEN_PORT[color]), //Color *must* be 0 or 1 (white, black)
         .sin_addr = {.s_addr = INADDR_ANY} //(man 7 ip)
     };
-    const short int reuse = 1;
+    const int reuse = 1;
     setsockopt(sockDesc, SOL_SOCKET, SO_REUSEADDR, (void *) &reuse, sizeof(reuse));
     const int res = bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
     if (res == -1) {
         std::cerr << "matchManager - Failed to bind socket. Errno=" << errno << std::endl;
+        return;
     }
 
     const int connectionBacklogLimit = 1;
@@ -284,6 +248,69 @@ void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variab
         else{
             std::cout << "Unknown Command: " << userInput << std::endl;
         }
+    }
+}
+
+void matchManagerThread(
+    std::atomic<bool>& gameOver,
+    std::atomic<int>& turnState,
+    bool& responseReady,
+    BoardState& state,
+    std::string& UCIResponse,
+    std::mutex& threadSyncMutex,
+    std::condition_variable& mutexCondition    
+){
+    while(true){
+        std::unique_lock lk(threadSyncMutex);
+        mutexCondition.wait(lk, [&gameOver, &responseReady]{ return gameOver || responseReady;});
+        if(gameOver){
+            lk.unlock();
+            //Dont need to notify because CLIThread already woke up other threads
+            break;
+        }
+        if(UCIResponse.find("bestmove") != std::string::npos){
+            std::istringstream ss(UCIResponse);
+            std::string token;
+            //Skip unti we reach "bestmove"
+            //Not the cleanest fix had to add this to deal with the engine thread sending: 
+            //"info score cp 0bestmove b1c3"
+            //Should probably figure out why the engine is sending info and bestmove together
+            do{
+                ss >> token;
+            } while(token.find("bestmove") == std::string::npos);
+            //token equals move ie "e2e4"
+            ss >> token;
+
+            std::cerr << "move token: " << token << std::endl;
+
+            Move engineMove = strMoveToMove(token, state);
+
+            std::cerr << "engineMove.src: " << engineMove.source << std::endl << "engineMove.dest: " << engineMove.dest << std::endl;
+
+            UndoState undo;
+            makeMove(state, engineMove, undo);
+            std::cerr << "After makeMove call: " << boardStateToFen(state) << std::endl;
+            UCIResponse = ""; //Clear UCIResponse
+            responseReady = false;
+            turnState = state.sideToMove;
+            MoveList legalMoves = generateMoves(state, state.sideToMove);
+            //Checks if game is over
+            if(legalMoves.count == 0){
+                gameOver = true;
+                lk.unlock();
+                mutexCondition.notify_all();
+                break;
+            }
+            lk.unlock();
+            mutexCondition.notify_all();
+        }
+        else{
+            lk.unlock();
+        }
+        lk.lock();
+        responseReady = false;
+        lk.unlock();
+        mutexCondition.notify_all();
     }
 }
 

@@ -17,7 +17,6 @@
 #include <cassert>
 
 void engineThread(
-    std::atomic<bool>& readyFlag,
     const std::atomic<int>& turnState,
     int color,
     std::atomic<bool>& gameOver,
@@ -27,6 +26,16 @@ void engineThread(
     std::mutex& m,
     std::condition_variable& cv
 );
+void matchManagerThread(
+    std::atomic<bool>& gameOver,
+    std::atomic<int>& turnState,
+    bool& responseReady,
+    BoardState& state,
+    std::string& UCIResponse,
+    std::mutex& threadSyncMutex,
+    std::condition_variable& mutexCondition
+);
+
 void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv);
 
 #define PACKET_STR_SIZE 128

@@ -30,7 +30,7 @@ void initTexture(SDL_Renderer *rend, std::string textureDir){
 
 void renderBoard(
         BoardState& boardState, 
-        std::atomic<bool>& isRunning,
+        std::atomic<bool>& gameOver,
         uint32_t squareDarkColor,
         uint32_t squareLightColor,
         std::string textureDir,
@@ -93,16 +93,16 @@ void renderBoard(
         }
     }
 
-    while(isRunning){
+    while(!gameOver){
         frameStart = SDL_GetTicks();
 
         while(SDL_PollEvent(&event) != 0){
             if(event.type == SDL_QUIT){
-                isRunning = false;
+                gameOver = true;
             }
             else if(event.type == SDL_KEYDOWN){
                 if(event.key.keysym.sym == SDLK_ESCAPE){
-                    isRunning = false;
+                    gameOver = true;
                 }
             }
         }
