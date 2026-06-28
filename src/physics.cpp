@@ -806,6 +806,10 @@ void fenToBoardState(const std::string& fen, BoardState& boardState){
         boardState.pieces[WHITE][i] = 0ULL;
         boardState.pieces[BLACK][i] = 0ULL;
     }
+    //Start with empty board
+    for(int i = 0; i < 64; i++){
+        boardState.pieceArray[i] = -1;
+    }
     //56 is a8
     int square = 56;
     int i = 0;

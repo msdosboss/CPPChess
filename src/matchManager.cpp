@@ -238,7 +238,8 @@ void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variab
     while(true){
         std::string userInput;
         std::cin >> userInput;
-        if(userInput == "abort" || std::cin.eof() || gameOver){
+        std::cout << userInput;
+        if(userInput == "abort" || std::cin.eof() || gameOver == true){
             std::unique_lock lk(m);
             gameOver = true;
             lk.unlock();
