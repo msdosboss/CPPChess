@@ -605,7 +605,8 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
         std::cerr << "Fen of failed pos: " << boardStateToFen(boardState) << std::endl;
         std::cerr << "Failed to find piece in makeMove on square " << squareToAlgebraic(move.source) << std::endl;
         std::cerr << "Dest of the failed move: " << squareToAlgebraic(move.dest) << std::endl;
-        return;
+        //Force a crash other wise it will keep trying to search through corrupted positions
+        exit(1);
     }
     if (pieceType == KING) {
         if (boardState.sideToMove == WHITE) {
