@@ -102,12 +102,14 @@ int main(int argc, char **argv) {
     if(engineTwoThread.joinable()){
         engineTwoThread.join();
     }
-    /*if(userCLIThread.joinable()){
+    if(userCLIThread.joinable()){
         userCLIThread.join();
-    }*/
-    //Since UCI thread can block forever on std::in we can't ensure that it will be joinable
-    //Let the OS handle it
-    userCLIThread.detach();
+    }
+    //I think it's fine to join now, UCIThread can't block infinitely anymore.
+    //It was actually the engine threads blocking.
+    //~~Since UCI thread can block forever on std::in we can't ensure that it will be joinable
+    //~~Let the OS handle it
+    //userCLIThread.detach();
 
 }
 
@@ -122,7 +124,7 @@ void engineThread(
     std::condition_variable& cv
 ) {
     int sockDesc = -1;
-    if ((sockDesc = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    if ((sockDesc = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) == -1) {
         std::cerr << "matchManager - Failed to create socket in engineThread: color = " << color << std::endl;
     }
     struct sockaddr_in listenAddressOne = {
@@ -149,7 +151,7 @@ void engineThread(
     int clientDesc = -1;
     do {
         if (gameOver) { return; }
-        clientDesc = accept4(sockDesc, (struct sockaddr *) &clientConnInfo, &connSizeInfo, SOCK_NONBLOCK); //no longer blocks until connection
+        clientDesc = accept(sockDesc, (struct sockaddr *) &clientConnInfo, &connSizeInfo);
         if (clientDesc == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
@@ -208,15 +210,18 @@ void engineThread(
         //await engine response
         int bytesRead;
         do {
+            if (gameOver) { close(clientDesc); return; }
             bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
             //TODO -- can later parse the other info the engines send in here
             //such as what the engine thought of a certain position, etc
-        } while (std::string(buf).find("bestmove") == std::string::npos);
+        } while (std::string(buf).find("bestmove") == std::string::npos && !gameOver);
         if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
+            close(clientDesc);
             return;
         } else if (bytesRead == -1) {
             std::cerr << "matchManager recv call failed with errno=" << errno << std::endl;
+            close(clientDesc);
             return;
         }
         //ensure std::string cast wont pickup garbage
@@ -232,6 +237,8 @@ void engineThread(
         lk.unlock();
         cv.notify_all();
     }
+
+    return;
 }
 
 void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv){
