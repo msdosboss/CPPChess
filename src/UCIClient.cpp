@@ -165,8 +165,9 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     loadOpeningBook("data/openBook.json");
     BoardState boardState;
     fenToBoardState(STARTFEN, boardState);
-    //This position causes bug that I need to figure out
+    //These position causes bug that I need to figure out
     //fenToBoardState("rnb1k1nr/ppq3pp/4pp2/3pP1NQ/2pP4/P1P5/2P2PPP/R1B1KB1R b KQkq - 1 9", boardState);
+    //fenToBoardState("fen 1k6/2p5/p3n1p1/3r4/2rP1Ppp/P2RB2P/3RK3/8 w  -", boardState);
     //Slow middle game position
     //fenToBoardState("4rk1r/2pnq1pp/1p1bQn2/p3P3/3P1N2/2N5/PP1B1PPP/R3K2R w KQ - 1 16", boardState);
     //Rook King end game
