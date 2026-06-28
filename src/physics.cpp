@@ -74,6 +74,10 @@ void generateKnightAttacks(){
 uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
     uint64_t b = 1ULL << square;
     uint64_t squaresAttacked = 0ULL;
+
+    //Preventing undefined behavior of bit shifting with -1
+    uint64_t enPassMask = (boardState.enPassantSquare != -1) ? (1ULL << boardState.enPassantSquare) : 0ULL;
+
     if(color == WHITE){
         //Moving forward
         squaresAttacked |= (b << 8) & ~boardState.occupiedSquares[2]; 
@@ -81,8 +85,8 @@ uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
             squaresAttacked |= (b << 16) & ~(boardState.occupiedSquares[2]);
         }
         //capture
-        squaresAttacked |= ((b << 9) & ~fileA) & (boardState.occupiedSquares[BLACK] | (1ULL << boardState.enPassantSquare));
-        squaresAttacked |= ((b << 7) & ~fileH) & (boardState.occupiedSquares[BLACK] | (1ULL << boardState.enPassantSquare));
+        squaresAttacked |= ((b << 9) & ~fileA) & (boardState.occupiedSquares[BLACK] | enPassMask);
+        squaresAttacked |= ((b << 7) & ~fileH) & (boardState.occupiedSquares[BLACK] | enPassMask);
     }
     else{
         //Moving forward
@@ -91,8 +95,8 @@ uint64_t generatePawnMoves(BoardState& boardState, int square, int color){
             squaresAttacked |= (b >> 16) & ~(boardState.occupiedSquares[2]);
         }
         //capture
-        squaresAttacked |= ((b >> 9) & ~fileH) & (boardState.occupiedSquares[WHITE] | (1ULL << boardState.enPassantSquare));
-        squaresAttacked |= ((b >> 7) & ~fileA) & (boardState.occupiedSquares[WHITE] | (1ULL << boardState.enPassantSquare));
+        squaresAttacked |= ((b >> 9) & ~fileH) & (boardState.occupiedSquares[WHITE] | enPassMask);
+        squaresAttacked |= ((b >> 7) & ~fileA) & (boardState.occupiedSquares[WHITE] | enPassMask);
     }
     return squaresAttacked;
 }
@@ -596,7 +600,9 @@ void makeMove(BoardState& boardState, Move move, UndoState& undoState){
     zobristFlags(boardState);
 
     if(pieceType == -1){
-        std::cerr << "Failed to find piece in makeMove on square " << move.source << std::endl;
+        std::cerr << "Fen of failed pos: " << boardStateToFen(boardState) << std::endl;
+        std::cerr << "Failed to find piece in makeMove on square " << squareToAlgebraic(move.source) << std::endl;
+        std::cerr << "Dest of the failed move: " << squareToAlgebraic(move.dest) << std::endl;
         return;
     }
     if (pieceType == KING) {
