@@ -13,9 +13,19 @@ int main(int argc, char **argv) {
         std::string s = std::string(argv[i]);
         if (s == "-f") {
             fen = std::string(argv[i+1]);
+            int j = i + 2;
+            //Finds new arg or reaches the end
+            //Fens can have dashes so we need a better way of dealing with this when we add new args
+            while(/*std::string(argv[j]).find("-") == std::string::npos &&*/ j < argc){
+                fen += " ";
+                fen += std::string(argv[j]);
+                j++;
+            }
             break;
         } 
     }
+
+    std::cerr << "fen: " << fen << std::endl;
 
     //Match Manager needs to be a source of true for moves
     generateKingAttacks();
