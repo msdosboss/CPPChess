@@ -358,6 +358,8 @@ MoveList generateMoves(BoardState& boardState, int color){
                         }
                             break;
                 }
+                // This guarantees no piece can ever cannibalize its own team.
+                attackBoard &= ~boardState.occupiedSquares[color];
                 while(attackBoard != 0){
                     int destSquare = __builtin_ctzll(attackBoard);
 
