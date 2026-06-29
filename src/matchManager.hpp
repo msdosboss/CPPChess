@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cassert>
+#include <cstdlib>
+#include <ctime>
 
 struct GameState {
     std::atomic<bool> gameOver;
@@ -22,6 +24,8 @@ struct GameState {
     std::atomic<bool> blackReady;
     std::atomic<bool> timeUp;
     std::atomic<int> turnState;
+    std::atomic<std::time_t> blackTime; //In milliseconds
+    std::atomic<std::time_t> whiteTime;
     std::mutex threadSyncMutex;
     std::condition_variable mutexCondition;
     BoardState state;
@@ -35,13 +39,9 @@ void engineThread(
     bool& responseReady
 );
 void matchManagerThread(
-    std::atomic<bool>& gameOver,
-    std::atomic<int>& turnState,
+    struct GameState& gameState,
     bool& responseReady,
-    BoardState& state,
-    std::string& UCIResponse,
-    std::mutex& threadSyncMutex,
-    std::condition_variable& mutexCondition
+    std::string& UCIResponse
 );
 
 void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mutex& m, std::condition_variable& cv);

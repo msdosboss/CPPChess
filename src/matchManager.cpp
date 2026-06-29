@@ -8,15 +8,33 @@ void validateSend(int sendRetVal, int expectedByteCount);
 //std::condition_variable cv;
 
 int main(int argc, char **argv) {
+    struct GameState gameState = {
+        .gameOver = false,
+        .whiteReady = false,
+        .blackReady = false,
+        .timeUp = false,
+        .blackTime = 60*5*1000,
+        .whiteTime = 60*5*1000 //default time in ms: 5 minutes
+    };
     std::string fen = STARTFEN;
     for (int i = 0; i < argc; ++i) {
         std::string s = std::string(argv[i]);
-        if (s == "-f") {
+        if (s == "-wt") {
+            gameState.whiteTime = std::atoi(argv[i+1]);
+        } 
+        else if (s == "-bt") {
+            gameState.whiteTime = std::atoi(argv[i+1]);
+        } 
+        else if (s == "-f") {
             fen = std::string(argv[i+1]);
             int j = i + 2;
             //Finds new arg or reaches the end
             //Fens can have dashes so we need a better way of dealing with this when we add new args
-            while(/*std::string(argv[j]).find("-") == std::string::npos &&*/ j < argc){
+            while (
+                std::string(argv[j]).find("-wt") == std::string::npos &&
+                std::string(argv[j]).find("-bt") == std::string::npos &&
+                j < argc
+            ) {
                 fen += " ";
                 fen += std::string(argv[j]);
                 j++;
@@ -40,26 +58,15 @@ int main(int argc, char **argv) {
     
     uint32_t lightColor = 0xffffffff;
     uint32_t darkColor = 0xff4a9627;
-
-    struct GameState gameState = {
-        .gameOver = false,
-        .whiteReady = false,
-        .blackReady = false,
-        .timeUp = false,
-    };
     fenToBoardState(fen, std::ref(gameState.state));
     gameState.turnState = gameState.state.sideToMove;
 
 
     userMatchManagerThread = std::thread(
         matchManagerThread,
-        std::ref(gameState.gameOver),
-        std::ref(gameState.turnState),
+        std::ref(gameState),
         std::ref(responseReady),
-        std::ref(gameState.state),
-        std::ref(UCIResponse),
-        std::ref(gameState.threadSyncMutex),
-        std::ref(gameState.mutexCondition)        
+        std::ref(UCIResponse)
     );
 
     userCLIThread = std::thread(
@@ -179,6 +186,17 @@ void engineThread(
         << ":" << ntohs(clientConnInfo.sin_port) << std::endl;
     
     //std::cerr << "wready = " << gameState.whiteReady << " bready = " << gameState.blackReady << std::endl;
+    std::string cmd = "uci\n";
+    send(clientDesc, cmd.c_str(), cmd.length(), 0);
+    cmd = "isready\n";
+    send(clientDesc, cmd.c_str(), cmd.length(), 0);
+    
+    //draining all data from pending recv queue
+    while (1) { 
+        char buf[PACKET_STR_SIZE]; 
+        const int res = recv(clientDesc, buf, PACKET_STR_SIZE, MSG_DONTWAIT);
+        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) { break; }
+    }
 
     while (true) {
         std::unique_lock lk(gameState.threadSyncMutex);
@@ -196,7 +214,7 @@ void engineThread(
         }
 
         lk.lock();
-        std::string cmd = createPositionCmd(gameState.state) + "\n";
+        cmd = createPositionCmd(gameState.state) + "\n";
         lk.unlock();
         assert(cmd.length() <= PACKET_STR_SIZE); //Need some form of bounds checking
             //better to crash than error silently
@@ -209,7 +227,7 @@ void engineThread(
         int bytesSent = send(clientDesc, (void *) buf, cmd.length(), MSG_MORE);
         validateSend(bytesSent, cmd.length());
         
-        cmd = "go\n";
+        cmd = "go wtime " + std::to_string(gameState.whiteTime) + " btime " + std::to_string(gameState.blackTime) + "\n";
         std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
         buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
@@ -234,6 +252,9 @@ void engineThread(
                 else if (gameState.timeUp) {
                     char buf[] = "stop\n";
                     const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
+                    if (res == -1) {
+                        std::cerr << "Failed to send time up signal" << std::endl;
+                    }
                     gameState.timeUp = false;
                     continue;
                 }
@@ -289,22 +310,35 @@ void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mute
 }
 
 void matchManagerThread(
-    std::atomic<bool>& gameOver,
-    std::atomic<int>& turnState,
+    struct GameState& gameState,
     bool& responseReady,
-    BoardState& state,
-    std::string& UCIResponse,
-    std::mutex& threadSyncMutex,
-    std::condition_variable& mutexCondition    
+    std::string& UCIResponse
 ){
+
+    //auto now = std::chrono::system_clock::now();
+    std::time_t timeBeforeMove = 0;
+    std::time_t timeAfterMove = 0;
+    //std::chrono::milliseconds timeBeforeMove = std::chrono::milliseconds::zero();
+    //std::chrono::milliseconds timeAfterMove = std::chrono::milliseconds::zero();
     while(true){
-        std::unique_lock lk(threadSyncMutex);
-        mutexCondition.wait(lk, [&gameOver, &responseReady]{ return gameOver || responseReady;});
-        if(gameOver){
+        std::unique_lock lk(gameState.threadSyncMutex);
+        gameState.mutexCondition.wait(lk, [&gameState, &responseReady]{ return gameState.gameOver || responseReady;});
+        if(gameState.gameOver){
             lk.unlock();
             //Dont need to notify because CLIThread already woke up other threads
             break;
         }
+        timeAfterMove = std::time(nullptr);
+
+        std::time_t timeDiff = timeAfterMove - timeBeforeMove;
+        if (timeBeforeMove != 0) {
+            if (gameState.turnState == WHITE) {
+                gameState.whiteTime -= timeDiff;
+            } else {
+                gameState.blackTime -= timeDiff;
+            }
+        }
+
         if(UCIResponse.find("bestmove") != std::string::npos){
             std::istringstream ss(UCIResponse);
             std::string token;
@@ -320,26 +354,27 @@ void matchManagerThread(
 
             std::cerr << "move token: " << token << std::endl;
 
-            Move engineMove = strMoveToMove(token, state);
+            Move engineMove = strMoveToMove(token, gameState.state);
 
             std::cerr << "engineMove.src: " << engineMove.source << std::endl << "engineMove.dest: " << engineMove.dest << std::endl;
 
             UndoState undo;
-            makeMove(state, engineMove, undo);
-            std::cerr << "After makeMove call: " << boardStateToFen(state) << std::endl;
+            makeMove(gameState.state, engineMove, undo);
+            std::cerr << "After makeMove call: " << boardStateToFen(gameState.state) << std::endl;
             UCIResponse = ""; //Clear UCIResponse
             responseReady = false;
-            turnState = state.sideToMove;
-            MoveList legalMoves = generateMoves(state, state.sideToMove);
+            gameState.turnState = gameState.state.sideToMove;
+            MoveList legalMoves = generateMoves(gameState.state, gameState.state.sideToMove);
             //Checks if game is over
             if(legalMoves.count == 0){
-                gameOver = true;
+                gameState.gameOver = true;
                 lk.unlock();
-                mutexCondition.notify_all();
+                gameState.mutexCondition.notify_all();
                 break;
             }
+            timeBeforeMove = std::time(nullptr);
             lk.unlock();
-            mutexCondition.notify_all();
+            gameState.mutexCondition.notify_all();
         }
         else{
             lk.unlock();
@@ -347,7 +382,7 @@ void matchManagerThread(
         lk.lock();
         responseReady = false;
         lk.unlock();
-        mutexCondition.notify_all();
+        gameState.mutexCondition.notify_all();
     }
 }
 
