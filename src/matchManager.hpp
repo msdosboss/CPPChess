@@ -31,15 +31,26 @@ struct GameState {
     BoardState state;
 };
 
+struct GameHistory {
+    uint8_t winner; //0 for white 1 for black
+    unsigned int moveIndex;
+    std::string whiteName;
+    std::string blackName;
+    std::string startFen;
+    std::string moveFens[512];
+    Move moveArray[512]; //Sensible default for a max-length game
+};
 
 void engineThread(
     struct GameState& gameState,
+    struct GameHistory& gameHistory,
     int color,
     std::string& UCIResponse,
     bool& responseReady
 );
 void matchManagerThread(
     struct GameState& gameState,
+    struct GameHistory& gameHistory,
     bool& responseReady,
     std::string& UCIResponse
 );

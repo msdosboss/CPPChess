@@ -42,6 +42,10 @@ int main(int argc, char **argv) {
             break;
         } 
     }
+    struct GameHistory gameHistory = {
+        .moveIndex = 0,
+        .startFen = fen,
+    };
 
     std::cerr << "fen: " << fen << std::endl;
 
@@ -65,6 +69,7 @@ int main(int argc, char **argv) {
     userMatchManagerThread = std::thread(
         matchManagerThread,
         std::ref(gameState),
+        std::ref(gameHistory),
         std::ref(responseReady),
         std::ref(UCIResponse)
     );
@@ -79,6 +84,7 @@ int main(int argc, char **argv) {
     engineOneThread = std::thread(
         engineThread,
         std::ref(gameState),
+        std::ref(gameHistory),
         WHITE,
         std::ref(UCIResponse),
         std::ref(responseReady)
@@ -86,6 +92,7 @@ int main(int argc, char **argv) {
     engineTwoThread = std::thread(
         engineThread,
         std::ref(gameState),
+        std::ref(gameHistory),
         BLACK,
         std::ref(UCIResponse),
         std::ref(responseReady)
@@ -126,6 +133,7 @@ int main(int argc, char **argv) {
 
 void engineThread(
     struct GameState& gameState,
+    struct GameHistory& gameHistory,
     int color,
     std::string& UCIResponse,
     bool& responseReady
@@ -141,7 +149,7 @@ void engineThread(
     };
     const int reuse = 1;
     setsockopt(sockDesc, SOL_SOCKET, SO_REUSEADDR, (void *) &reuse, sizeof(reuse));
-    const int res = bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
+    int res = bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
     if (res == -1) {
         std::cerr << "matchManager - Failed to bind socket. Errno=" << errno << std::endl;
         return;
@@ -188,12 +196,43 @@ void engineThread(
     //std::cerr << "wready = " << gameState.whiteReady << " bready = " << gameState.blackReady << std::endl;
     std::string cmd = "uci\n";
     send(clientDesc, cmd.c_str(), cmd.length(), 0);
+    char buf[PACKET_STR_SIZE]; 
+    res = recv(clientDesc, buf, PACKET_STR_SIZE, 0);
+    if (res > 0) {
+        std::string cppBuf = std::string(buf);
+        std::istringstream ss(cppBuf);
+        std::string token;
+        while (ss >> token) {
+            if (token == "name") {
+                std::string engineName;
+                std::getline(ss, engineName);
+
+                if (color == WHITE) {
+                    gameHistory.whiteName = engineName;
+                }
+                else {
+                    gameHistory.blackName = engineName;
+                }
+            }
+        }
+    } else {
+        std::cerr << "Failed to get info after uci command sent" << std::endl;
+    }
+
+
+    if (color == WHITE) {
+        std::cerr << gameHistory.whiteName << std::endl;
+    }
+    else {
+        std::cerr << gameHistory.blackName << std::endl;
+    }
+
     cmd = "isready\n";
     send(clientDesc, cmd.c_str(), cmd.length(), 0);
     
     //draining all data from pending recv queue
     while (1) { 
-        char buf[PACKET_STR_SIZE]; 
+        //char buf[PACKET_STR_SIZE]; 
         const int res = recv(clientDesc, buf, PACKET_STR_SIZE, MSG_DONTWAIT);
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) { break; }
     }
@@ -311,6 +350,7 @@ void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mute
 
 void matchManagerThread(
     struct GameState& gameState,
+    struct GameHistory& gameHistory,
     bool& responseReady,
     std::string& UCIResponse
 ){
