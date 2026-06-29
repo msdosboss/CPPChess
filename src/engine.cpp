@@ -131,6 +131,12 @@ int main(){
 
 void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo){
     int finalEval = 0;
+    MoveList legalMoves = generateLegalMoves(boardState);
+
+    if(legalMoves.count == 0){
+        std::cout << "bestmove (none)" << std::endl;
+        return;
+    }
 
     Move selectedMove = searchBestMoveIt(boardState, maxDepth, duration, searchInfo, finalEval);
     std::string sourceSquare = squareToAlgebraic(selectedMove.source);

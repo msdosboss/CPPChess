@@ -13,8 +13,8 @@ int main(int argc, char **argv) {
         .whiteReady = false,
         .blackReady = false,
         .timeUp = false,
-        .blackTime = 60*5*1000,
-        .whiteTime = 60*5*1000 //default time in ms: 5 minutes
+        .blackTime = 3000,//60*5*1000,
+        .whiteTime = 3000//60*5*1000 //default time in ms: 5 minutes
     };
     std::string fen = STARTFEN;
     for (int i = 0; i < argc; ++i) {
