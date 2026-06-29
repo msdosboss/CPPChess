@@ -35,73 +35,67 @@ int main(int argc, char **argv) {
     std::thread userCLIThread;
     std::thread engineOneThread;
     std::thread engineTwoThread;
-    std::atomic<int> turnState;
-    std::atomic<bool> gameOver = false;
-    struct BoardState state;
-    std::mutex threadSyncMutex;
-    std::condition_variable mutexCondition;
     std::string UCIResponse; //locked behind the mutex condition
     bool responseReady = false; //locked behind the mutex condition
     
-    fenToBoardState(fen, std::ref(state));
-    turnState = state.sideToMove;
-
     uint32_t lightColor = 0xffffffff;
     uint32_t darkColor = 0xff4a9627;
+
+    struct GameState gameState = {
+        .gameOver = false,
+        .whiteReady = false,
+        .blackReady = false,
+        .timeUp = false,
+    };
+    fenToBoardState(fen, std::ref(gameState.state));
+    gameState.turnState = gameState.state.sideToMove;
 
 
     userMatchManagerThread = std::thread(
         matchManagerThread,
-        std::ref(gameOver),
-        std::ref(turnState),
+        std::ref(gameState.gameOver),
+        std::ref(gameState.turnState),
         std::ref(responseReady),
-        std::ref(state),
+        std::ref(gameState.state),
         std::ref(UCIResponse),
-        std::ref(threadSyncMutex),
-        std::ref(mutexCondition)        
+        std::ref(gameState.threadSyncMutex),
+        std::ref(gameState.mutexCondition)        
     );
 
     userCLIThread = std::thread(
         CLIThread,
-        std::ref(gameOver),
-        std::ref(threadSyncMutex),
-        std::ref(mutexCondition)        
+        std::ref(gameState.gameOver),
+        std::ref(gameState.timeUp),
+        std::ref(gameState.threadSyncMutex),
+        std::ref(gameState.mutexCondition)        
     );
     engineOneThread = std::thread(
         engineThread,
-        std::ref(turnState),
+        std::ref(gameState),
         WHITE,
-        std::ref(gameOver),
-        std::ref(state),
         std::ref(UCIResponse),
-        std::ref(responseReady),
-        std::ref(threadSyncMutex),
-        std::ref(mutexCondition)
+        std::ref(responseReady)
     );
     engineTwoThread = std::thread(
         engineThread,
-        std::ref(turnState),
+        std::ref(gameState),
         BLACK,
-        std::ref(gameOver),
-        std::ref(state),
         std::ref(UCIResponse),
-        std::ref(responseReady),
-        std::ref(threadSyncMutex),
-        std::ref(mutexCondition)
+        std::ref(responseReady)
     );
 
     renderBoard(
-        std::ref(state),
-        std::ref(gameOver),
+        std::ref(gameState.state),
+        std::ref(gameState.gameOver),
         darkColor,
         lightColor,
         "img",
-        std::ref(threadSyncMutex)
+        std::ref(gameState.threadSyncMutex)
     );
 
     //If game ends because of gui close
-    gameOver = true;
-    mutexCondition.notify_all();
+    gameState.gameOver = true;
+    gameState.mutexCondition.notify_all();
 
     if(userMatchManagerThread.joinable()){
         userMatchManagerThread.join();
@@ -124,14 +118,10 @@ int main(int argc, char **argv) {
 }
 
 void engineThread(
-    const std::atomic<int>& turnState,
+    struct GameState& gameState,
     int color,
-    std::atomic<bool>& gameOver,
-    BoardState& state,
     std::string& UCIResponse,
-    bool& responseReady,
-    std::mutex& m,
-    std::condition_variable& cv
+    bool& responseReady
 ) {
     int sockDesc = -1;
     if ((sockDesc = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) == -1) {
@@ -160,7 +150,7 @@ void engineThread(
     //I'll leave the choice of how to go about that undecided for now.
     int clientDesc = -1;
     do {
-        if (gameOver) { return; }
+        if (gameState.gameOver) { return; }
         clientDesc = accept(sockDesc, (struct sockaddr *) &clientConnInfo, &connSizeInfo);
         if (clientDesc == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -176,19 +166,28 @@ void engineThread(
     int flags = fcntl(clientDesc, F_GETFL);
     flags &= ~(O_NONBLOCK);
     fcntl(clientDesc, F_SETFL, flags);
+    if (color == WHITE) {
+        gameState.whiteReady = true;
+    }
+    else {
+        gameState.blackReady = true;
+    }
+    gameState.mutexCondition.notify_all();
     //Could output the contents of clientConnInfo for logging / connection debug
     std::cerr << "matchManager - Client successfully connected: "
         << ntohs(clientConnInfo.sin_addr.s_addr)
         << ":" << ntohs(clientConnInfo.sin_port) << std::endl;
     
+    //std::cerr << "wready = " << gameState.whiteReady << " bready = " << gameState.blackReady << std::endl;
+
     while (true) {
-        std::unique_lock lk(m);
-        cv.wait(lk, [color, &turnState, &gameOver, &responseReady]{ 
-                return (!responseReady && color == turnState) || gameOver; 
+        std::unique_lock lk(gameState.threadSyncMutex);
+        gameState.mutexCondition.wait(lk, [color, &gameState, &responseReady]{ 
+                return (!responseReady && (color == gameState.turnState) && gameState.whiteReady && gameState.blackReady) || gameState.gameOver; 
         }); //my turn
         std::cerr << "matchManager engine thread woken up, color=" << color << std::endl;
         lk.unlock(); //This allows main thread to continue to act
-        if(gameOver){
+        if(gameState.gameOver){
             char buf[] = "bye";
             send(clientDesc, (void *) buf, sizeof(buf), MSG_DONTWAIT);
             close(clientDesc); //this technically has a return value
@@ -197,7 +196,7 @@ void engineThread(
         }
 
         lk.lock();
-        std::string cmd = createPositionCmd(state) + "\n";
+        std::string cmd = createPositionCmd(gameState.state) + "\n";
         lk.unlock();
         assert(cmd.length() <= PACKET_STR_SIZE); //Need some form of bounds checking
             //better to crash than error silently
@@ -219,12 +218,30 @@ void engineThread(
         validateSend(bytesSent, cmd.length());
         //await engine response
         int bytesRead;
+        std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
         do {
-            if (gameOver) { close(clientDesc); return; }
-            bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
+            bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
+            if (bytesRead == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                if (gameState.gameOver) {
+                    char buf[] = "bye";
+                    const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
+                    std::cerr << "res = " << res << std::endl;
+                    close(clientDesc); //this technically has a return value
+                        //to indicate failure, but it's dumb
+                    return;
+                }
+                else if (gameState.timeUp) {
+                    char buf[] = "stop\n";
+                    const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
+                    gameState.timeUp = false;
+                    continue;
+                }
+                continue;
+            }
             //TODO -- can later parse the other info the engines send in here
             //such as what the engine thought of a certain position, etc
-        } while (std::string(buf).find("bestmove") == std::string::npos && !gameOver);
+        } while (std::string(buf).find("bestmove") == std::string::npos && !gameState.gameOver);
         if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
             close(clientDesc);
@@ -245,13 +262,12 @@ void engineThread(
         std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
         lk.unlock();
-        cv.notify_all();
+        gameState.mutexCondition.notify_all();
     }
-
     return;
 }
 
-void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv){
+void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mutex& m, std::condition_variable& cv){
     while(true){
         std::string userInput;
         std::cin >> userInput;
@@ -262,6 +278,9 @@ void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variab
             lk.unlock();
             cv.notify_all();
             break;
+        }
+        else if (userInput == "stop") { //tells the current engine to immediately stop thinking and send its current best move
+            timeUp = true;
         }
         else{
             std::cout << "Unknown Command: " << userInput << std::endl;

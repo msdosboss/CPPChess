@@ -16,15 +16,23 @@
 #include <fcntl.h>
 #include <cassert>
 
+struct GameState {
+    std::atomic<bool> gameOver;
+    std::atomic<bool> whiteReady;
+    std::atomic<bool> blackReady;
+    std::atomic<bool> timeUp;
+    std::atomic<int> turnState;
+    std::mutex threadSyncMutex;
+    std::condition_variable mutexCondition;
+    BoardState state;
+};
+
+
 void engineThread(
-    const std::atomic<int>& turnState,
+    struct GameState& gameState,
     int color,
-    std::atomic<bool>& gameOver,
-    BoardState& state,
     std::string& UCIResponse,
-    bool& responseReady,
-    std::mutex& m,
-    std::condition_variable& cv
+    bool& responseReady
 );
 void matchManagerThread(
     std::atomic<bool>& gameOver,
@@ -36,7 +44,7 @@ void matchManagerThread(
     std::condition_variable& mutexCondition
 );
 
-void CLIThread(std::atomic<bool>& gameOver, std::mutex& m, std::condition_variable& cv);
+void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mutex& m, std::condition_variable& cv);
 
 #define PACKET_STR_SIZE 128
 #define LISTEN_PORT_WHITE 3001
