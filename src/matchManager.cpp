@@ -197,9 +197,14 @@ void engineThread(
     std::string cmd = "uci\n";
     send(clientDesc, cmd.c_str(), cmd.length(), 0);
     char buf[PACKET_STR_SIZE]; 
-    res = recv(clientDesc, buf, PACKET_STR_SIZE, 0);
+    std::string cppBuf;
+    do {
+        res = recv(clientDesc, buf, PACKET_STR_SIZE, 0);
+        cppBuf = std::string(buf);
+    } while (cppBuf.find("id name") == std::string::npos);
+    std::cerr << "{{{ " << buf << " }}}" << std::endl << std::endl;
     if (res > 0) {
-        std::string cppBuf = std::string(buf);
+        cppBuf = std::string(buf);
         std::istringstream ss(cppBuf);
         std::string token;
         while (ss >> token) {
@@ -221,10 +226,10 @@ void engineThread(
 
 
     if (color == WHITE) {
-        std::cerr << gameHistory.whiteName << std::endl;
+        std::cerr << "white's name = " << gameHistory.whiteName << std::endl;
     }
     else {
-        std::cerr << gameHistory.blackName << std::endl;
+        std::cerr << "black's name = " << gameHistory.blackName << std::endl;
     }
 
     cmd = "isready\n";

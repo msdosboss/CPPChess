@@ -71,6 +71,7 @@ int main(int argc, char **argv)
             //strncpy(sendPacket.str, engineResponse.c_str(), PACKET_STR_SIZE - 1);
             //sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
             std::cerr << "Sending engine response of {{ " << engineResponse << " }}\n";
+            engineResponse += "\n";
             send(sockDesc, (void *) engineResponse.c_str(), engineResponse.length(), 0); //BLOCKING
         }
         if (std::string(recvPacket.str) == "bye") {

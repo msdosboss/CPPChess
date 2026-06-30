@@ -168,6 +168,7 @@ int displayLoop(SDL_Window *wind, SDL_Renderer *rend, int playerColor, EnginePro
     //Caused a crash in matchManager but does not crash when given to the engine IDK
     //fenToBoardState("3r2k1/4R2p/3p4/1Ppr4/6P1/8/2R2K1P/8 w  -", boardState);
     //fenToBoardState("r2q1r2/ppp3k1/2np3Q/8/2BPPp2/2N5/PPP5/2K4R b  -", boardState);
+    //fenToBoardState("r4kQ1/1pqb1r1p/4pB2/p2pPp2/P1pP4/P1P3R1/2B2PP1/4K1N1 b  -", boardState);
     //Slow middle game position
     //fenToBoardState("4rk1r/2pnq1pp/1p1bQn2/p3P3/3P1N2/2N5/PP1B1PPP/R3K2R w KQ - 1 16", boardState);
     //Rook King end game
