@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
             gameState.whiteTime = std::atoi(argv[i+1]);
         } 
         else if (s == "-bt") {
-            gameState.whiteTime = std::atoi(argv[i+1]);
+            gameState.blackTime = std::atoi(argv[i+1]);
         } 
         else if (s == "-f") {
             fen = std::string(argv[i+1]);
@@ -280,9 +280,13 @@ void engineThread(
         validateSend(bytesSent, cmd.length());
         //await engine response
         int bytesRead;
-        std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
+        std::string accumulatedResponse = "";
         do {
+            std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
             bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
+            if(bytesRead > 0){
+                accumulatedResponse += buf;
+            }
             if (bytesRead == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
                 if (gameState.gameOver) {
@@ -306,7 +310,7 @@ void engineThread(
             }
             //TODO -- can later parse the other info the engines send in here
             //such as what the engine thought of a certain position, etc
-        } while (std::string(buf).find("bestmove") == std::string::npos && !gameState.gameOver);
+        } while (accumulatedResponse.find("bestmove") == std::string::npos && !gameState.gameOver);
         if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
             close(clientDesc);
@@ -317,13 +321,14 @@ void engineThread(
             return;
         }
         //ensure std::string cast wont pickup garbage
-        buf[bytesRead] = '\0';
-        std::cerr << buf << std::endl;
+        //buf[bytesRead] = '\0';
+        std::cerr << accumulatedResponse << std::endl;
         lk.lock(); //This ensure that it is safe to write to the global UCIResponse
                    //Would it make sense to just make UCIResponse non-global, and passed
                    //as an atomic value to the threads that need to access it?
         //send received move to main thread
-        UCIResponse = std::string(buf);
+        //UCIResponse = std::string(buf);
+        UCIResponse = accumulatedResponse;
         std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
         lk.unlock();
@@ -373,7 +378,7 @@ void matchManagerThread(
             //Dont need to notify because CLIThread already woke up other threads
             break;
         }
-        //std::time is in seconds
+        //std::time is in seconds (meaning we probably eventually want the higher res clock in chrono)
         timeAfterMove = std::time(nullptr) * 1000;
 
         std::time_t timeDiff = timeAfterMove - timeBeforeMove;
@@ -410,7 +415,7 @@ void matchManagerThread(
             UCIResponse = ""; //Clear UCIResponse
             responseReady = false;
             gameState.turnState = gameState.state.sideToMove;
-            MoveList legalMoves = generateMoves(gameState.state, gameState.state.sideToMove);
+            MoveList legalMoves = generateLegalMoves(gameState.state);
             //Checks if game is over
             if(legalMoves.count == 0){
                 gameState.gameOver = true;
@@ -425,10 +430,6 @@ void matchManagerThread(
         else{
             lk.unlock();
         }
-        lk.lock();
-        responseReady = false;
-        lk.unlock();
-        gameState.mutexCondition.notify_all();
     }
 }
 
