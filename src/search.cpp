@@ -119,6 +119,9 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
             return 0;
         }
     }
+    if(gameHistorySearch.isRepetition(boardState.zobristHash)){
+        return 0;
+    }
     TTEntry ttEntry;
     Move possibleBestMove = {0};
     if (TT.probe(boardState.zobristHash, ttEntry)) {
@@ -186,6 +189,10 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
             Move currentMove = legalMoves.moves[i];
             UndoState undo;
             makeMove(boardState, currentMove, undo);
+            gameHistorySearch.push(
+                boardState.zobristHash, 
+                ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
+            );
             int currentMoveScore = minimax(boardState, depth - 1, alpha, beta, searchInfo);
             if(searchInfo.timesUp == true){
                 return 0;
@@ -196,6 +203,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
             }
             alpha = std::max(alpha, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
+            gameHistorySearch.pop();
             if(beta <= alpha){
                 break;
             }
@@ -231,6 +239,10 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
             Move currentMove = legalMoves.moves[i];
             UndoState undo;
             makeMove(boardState, currentMove, undo);
+            gameHistorySearch.push(
+                boardState.zobristHash, 
+                ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
+            );
             int currentMoveScore = minimax(boardState, depth - 1, alpha, beta, searchInfo);
             if(searchInfo.timesUp == true){
                 return 0;
@@ -241,6 +253,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
             }
             beta = std::min(beta, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
+            gameHistorySearch.pop();
             if(beta <= alpha){
                 break;
             }
@@ -276,6 +289,9 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
     if(depth == 0){
         return evaluate(boardState);
     }
+    if(gameHistorySearch.isRepetition(boardState.zobristHash)){
+        return 0;
+    }
     int standardPat = evaluate(boardState);
     if(boardState.sideToMove == WHITE){
         if(standardPat >= beta){
@@ -302,6 +318,10 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             }
             UndoState undo;
             makeMove(boardState, currentMove, undo);
+            gameHistorySearch.push(
+                boardState.zobristHash, 
+                ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
+            );
             int currentMoveScore = quiescenceSearch(boardState, depth - 1, alpha, beta, searchInfo);
             if(searchInfo.timesUp == true){
                 return 0;
@@ -309,6 +329,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             alpha = std::max(alpha, currentMoveScore);
             maxScore = std::max(currentMoveScore, maxScore);
             unmakeMove(boardState, currentMove, undo);
+            gameHistorySearch.pop();
             if(beta <= alpha){
                 break;
             }
@@ -327,6 +348,10 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             }
             UndoState undo;
             makeMove(boardState, currentMove, undo);
+            gameHistorySearch.push(
+                boardState.zobristHash, 
+                ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
+            );
             int currentMoveScore = quiescenceSearch(boardState, depth - 1, alpha, beta, searchInfo);
             if(searchInfo.timesUp == true){
                 return 0;
@@ -334,10 +359,66 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             minScore = std::min(currentMoveScore, minScore);
             beta = std::min(beta, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
+            gameHistorySearch.pop();
             if(beta <= alpha){
                 break;
             }
         }
         return minScore;
     }
+}
+
+
+
+void GameHistorySearch::push(uint64_t hash, bool isCapture){
+    int prevDist;
+    if(head == 0){
+        prevDist = 0;
+    }
+    else{
+        prevDist = stack[head - 1].plySinceCapture;
+    }
+    stack[head] = {
+        .hash = hash,
+        .plySinceCapture = isCapture ? 0 : prevDist + 1
+    };
+    head++;
+}
+
+void GameHistorySearch::pop(){
+    head--;
+}
+
+int GameHistorySearch::getCaptureMoveCount(){
+    return (head == 0) ? 0 : stack[head - 1].plySinceCapture;
+}
+
+uint64_t GameHistorySearch::getHashAt(int index){
+    return stack[index].hash;
+}
+
+int GameHistorySearch::size(){
+    return head;
+}
+
+void GameHistorySearch::reset(){
+    head = 0;
+}
+
+bool GameHistorySearch::isRepetition(uint64_t currentHash){
+    //This is the amount of positions since a capture
+    int statesToCheck = this->getCaptureMoveCount();
+    int size = this->size();
+    int count = 0;
+    for(int i = size - 1; i >= size - statesToCheck; i--){
+        uint64_t hash = this->getHashAt(i);
+        if(hash == currentHash){
+            count++;
+            //When it calls isRepetition it will have already have added itself to the history
+            if(count > 1){
+                return true;
+            }
+        }
+    }
+    return false;
 }

@@ -33,6 +33,7 @@ int main(){
         //new board position handled in position command
         else if(line == "ucinewgame"){
             TT.clear();
+            gameHistorySearch.reset();
         }
         else if(line.find("go") != std::string::npos){
             if(searchThread.joinable()){

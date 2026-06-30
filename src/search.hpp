@@ -21,6 +21,28 @@ struct SearchInfo{
     std::atomic<int> nodesSearched;
 };
 
+struct BoardHistoryEntry{
+    uint64_t hash;
+    int plySinceCapture;
+};
+
+class GameHistorySearch {
+    private:
+        BoardHistoryEntry stack[1024];
+        int head = 0;
+    public:
+        void push(uint64_t hash, bool isCapture);
+        void pop();
+        int getCaptureMoveCount();
+        uint64_t getHashAt(int index);
+        int size();
+        bool isRepetition(uint64_t currentHash);
+        void reset();
+        
+};
+
+inline GameHistorySearch gameHistorySearch;
+
 Move searchBestMove(BoardState& boardState, int depth, int& finalEval);
 int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo);
 int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo);

@@ -13,8 +13,8 @@ int main(int argc, char **argv) {
         .whiteReady = false,
         .blackReady = false,
         .timeUp = false,
-        .blackTime = 3000,//60*5*1000,
-        .whiteTime = 3000//60*5*1000 //default time in ms: 5 minutes
+        .blackTime = 60*5*1000,
+        .whiteTime = 60*5*1000 //default time in ms: 5 minutes
     };
     std::string fen = STARTFEN;
     for (int i = 0; i < argc; ++i) {
@@ -373,7 +373,8 @@ void matchManagerThread(
             //Dont need to notify because CLIThread already woke up other threads
             break;
         }
-        timeAfterMove = std::time(nullptr);
+        //std::time is in seconds
+        timeAfterMove = std::time(nullptr) * 1000;
 
         std::time_t timeDiff = timeAfterMove - timeBeforeMove;
         if (timeBeforeMove != 0) {
@@ -417,7 +418,7 @@ void matchManagerThread(
                 gameState.mutexCondition.notify_all();
                 break;
             }
-            timeBeforeMove = std::time(nullptr);
+            timeBeforeMove = std::time(nullptr) * 1000;
             lk.unlock();
             gameState.mutexCondition.notify_all();
         }
