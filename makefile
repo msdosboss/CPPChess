@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++17 -Wall -O3
 SDL_FLAGS = `sdl2-config --cflags --libs` -lSDL2_image
 
 # 'all' is the default target. It tells Make to build both executables.
-all: UCIClient engine createKeys netClient matchManager
+all: UCIClient engine createKeys engineClient matchManager
 
 createKeys: objects/createKeys.o objects/openBook.o
 	$(CXX) $(CXXFLAGS) -o build/createKeys objects/createKeys.o objects/openBook.o
@@ -19,7 +19,7 @@ debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/
 
 # Compile the GUI
 UCIClient: objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o objects/gui.o
-	$(CXX) $(CXXFLAGS) -o build/main objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o objects/gui.o $(SDL_FLAGS)
+	$(CXX) $(CXXFLAGS) -o build/UCIClient objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o objects/gui.o $(SDL_FLAGS)
 
 matchManager: objects/matchManager.o objects/physics.o objects/openBook.o objects/gui.o
 	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -o build/matchManager objects/matchManager.o objects/physics.o objects/openBook.o objects/gui.o
@@ -27,9 +27,12 @@ matchManager: objects/matchManager.o objects/physics.o objects/openBook.o object
 objects/matchManager.o: src/matchManager.cpp
 	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o objects/matchManager.o src/matchManager.cpp
 
-netClient: objects/netClient.o objects/engineProcess.o
-	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/netClient objects/netClient.o objects/engineProcess.o
-	
+engineClient: objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o
+	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/engineClient objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o
+
+objects/engineClient.o: src/engineClient.cpp
+	$(CXX) $(CXXFlags) $(SDL_FLAGS) -c -o objects/engineClient.o src/engineClient.cpp
+
 objects/netClient.o: src/netClient.cpp
 	$(CXX) $(CXXFlags) $(SDL_FLAGS) -c -o objects/netClient.o src/netClient.cpp
 
@@ -70,4 +73,4 @@ objects/transpositionTable.o: src/transpositionTable.cpp
 # Clean up both executables
 clean:
 	rm -f objects/*.o
-	rm -f build/main build/engine build/createKeys build/netClinet build/matchManager
+	rm -f build/main build/engine build/createKeys build/netClient build/matchManager build/engineClient build/UCIClient
