@@ -90,7 +90,8 @@ int main(int argc, char **argv){
 
     //Start the GUI on the Main Thread
     uint32_t lightColor = 0xffffffff;
-    uint32_t darkColor = 0xff4a9627;
+    //uint32_t darkColor =  0xf05b0aff;
+    uint32_t darkColor =  0xff8f0a27;
     renderBoard(
         std::ref(boardState),
         std::ref(gameOver),
