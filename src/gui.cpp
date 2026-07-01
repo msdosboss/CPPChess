@@ -26,7 +26,13 @@ void initTexture(SDL_Renderer *rend, std::string textureDir){
     dotTexture = IMG_LoadTexture(rend, (textureDir + "dot.png").c_str());
 }
 
-
+void freeTextures(){
+    for(int i = PAWN; i <= KING; i++){
+        SDL_DestroyTexture(pieceTextures[WHITE][i]);
+        SDL_DestroyTexture(pieceTextures[BLACK][i]);
+    }
+    SDL_DestroyTexture(dotTexture);
+}
 
 void renderBoard(
         BoardState& boardState, 
@@ -34,7 +40,9 @@ void renderBoard(
         uint32_t squareDarkColor,
         uint32_t squareLightColor,
         std::string textureDir,
-        std::mutex& m
+        int playerSide,
+        std::mutex& m,
+        std::condition_variable& cv
     ){
     if(SDL_Init(SDL_INIT_VIDEO) < 0){
         std::cerr << "SDL cound not init SDL_ERROR: " << SDL_GetError() << std::endl;
@@ -93,6 +101,15 @@ void renderBoard(
         }
     }
 
+    int pieceSelectedState = 0;
+    int clickX, clickY, mappedY;
+    clickX = 0;
+    clickY = 0;
+    mappedY = 0;
+    int sourceIndex = -1;
+    int destIndex = -1;
+    int pieceSelectedX = 0;
+    int pieceSelectedY = 0;
     while(!gameOver){
         frameStart = SDL_GetTicks();
 
@@ -105,7 +122,56 @@ void renderBoard(
                     gameOver = true;
                 }
             }
+            else if(event.type == SDL_MOUSEBUTTONDOWN){
+                clickX = event.button.x / (int)SQUARE_WIDTH;
+                clickY = event.button.y / (int)SQUARE_HEIGHT;
+                mappedY = 7 - clickY;
+                int clickedIndex = clickX + (mappedY * 8);
+                std::unique_lock lk(m);
+                if(!pieceSelectedState){
+                    if(isOccupied(boardState.occupiedSquares[boardState.sideToMove], clickedIndex)){
+                        pieceSelectedState = 1;
+                        sourceIndex = clickedIndex;
+                        pieceSelectedX = clickX;
+                        pieceSelectedY = clickY;
+                    }
+                    else{
+                        pieceSelectedState = 0;
+                    }
+                }
+                else{
+                    if(boardState.sideToMove == playerSide){
+                        pieceSelectedState = 2;
+                        destIndex = clickedIndex;
+                    }
+                    else{
+                        pieceSelectedState = 0;
+                    }
+                }
+                lk.unlock();
+            }
         }
+        std::unique_lock lk(m);
+        if(playerSide == boardState.sideToMove && pieceSelectedState == 2 && destIndex != -1){
+            MoveList legalMoves = generateLegalMoves(boardState);
+            for(int i = 0; i < legalMoves.count; i++){
+                //Still need to do something about pawn promo
+                if(legalMoves.moves[i].source == sourceIndex && legalMoves.moves[i].dest == destIndex){
+                    UndoState undoState;
+                    makeMove(boardState, legalMoves.moves[i], undoState);
+                    legalMoves = generateLegalMoves(boardState);
+                    if(legalMoves.count == 0){
+                        gameOver = true;
+                    }
+                    //Tell the engine to make its move
+                    cv.notify_all();
+                    break;
+                } 
+            }
+            destIndex = -1;
+            pieceSelectedState = 0;
+        }
+        lk.unlock();
         //Render squares on board
         for(int x = 0; x < 8; x++){
             for(int y = 0; y < 8; y++){
@@ -152,7 +218,7 @@ void renderBoard(
                 SDL_RenderFillRect(rend, &(squares[x][y]));
             }
         }
-        std::unique_lock lk(m);
+        lk.lock();
         BoardState boardStateCopy = boardState;
         lk.unlock();
         // Render the current bitboards to the screen
@@ -169,6 +235,21 @@ void renderBoard(
                 }
             }
         }
+        //Render legal moves as dots on the squares
+        if(pieceSelectedState == 1){
+            //Outline the selectedSquare red for now, probably should pass the color to renderBoard
+            SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+            SDL_RenderDrawRect(rend, &(squares[pieceSelectedX][pieceSelectedY]));
+            MoveList legalMoves = generateLegalMoves(boardStateCopy);
+            for(int i = 0; i < legalMoves.count; i++){
+                if(legalMoves.moves[i].source == sourceIndex){
+                    int moveXDst = legalMoves.moves[i].dest % 8;
+                    int moveYDst = legalMoves.moves[i].dest / 8;
+                    int mappedYDst = 7 - moveYDst;
+                    SDL_RenderCopy(rend, dotTexture, NULL, &(squares[moveXDst][mappedYDst]));
+                }
+            }
+        }
 
         SDL_RenderPresent(rend);
         frameTime = SDL_GetTicks() - frameStart;
@@ -176,6 +257,7 @@ void renderBoard(
             SDL_Delay(FRAME_DELAY - frameTime);
         }
     }
+    freeTextures();
     SDL_DestroyRenderer(rend);
     SDL_DestroyWindow(window);
     SDL_Quit();

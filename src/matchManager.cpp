@@ -39,7 +39,6 @@ int main(int argc, char **argv) {
                 fen += std::string(argv[j]);
                 j++;
             }
-            break;
         } 
     }
     struct GameHistory gameHistory = {
@@ -104,7 +103,9 @@ int main(int argc, char **argv) {
         darkColor,
         lightColor,
         "img",
-        std::ref(gameState.threadSyncMutex)
+        -1,
+        std::ref(gameState.threadSyncMutex),
+        std::ref(gameState.mutexCondition) //This will be unused for matchManager
     );
 
     //If game ends because of gui close
@@ -199,7 +200,8 @@ void engineThread(
     char buf[PACKET_STR_SIZE]; 
     std::string cppBuf;
     do {
-        res = recv(clientDesc, buf, PACKET_STR_SIZE, 0);
+        res = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
+        buf[PACKET_STR_SIZE - 1] = '\0';
         cppBuf = std::string(buf);
     } while (cppBuf.find("id name") == std::string::npos);
     std::cerr << "{{{ " << buf << " }}}" << std::endl << std::endl;

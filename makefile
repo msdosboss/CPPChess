@@ -18,8 +18,8 @@ debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/
 
 
 # Compile the GUI
-UCIClient: objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o 
-	$(CXX) $(CXXFLAGS) -o build/main objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o $(SDL_FLAGS)
+UCIClient: objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o objects/gui.o
+	$(CXX) $(CXXFLAGS) -o build/main objects/UCIClient.o objects/physics.o objects/engineProcess.o objects/openBook.o objects/gui.o $(SDL_FLAGS)
 
 matchManager: objects/matchManager.o objects/physics.o objects/openBook.o objects/gui.o
 	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -o build/matchManager objects/matchManager.o objects/physics.o objects/openBook.o objects/gui.o

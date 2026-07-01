@@ -4,6 +4,8 @@
 #include "physics.hpp"
 #include "evaluate.hpp"
 #include "openBook.hpp"
+#include "gui.hpp"
+#include "engineProcess.hpp"
 
 #include <iostream>
 #include <string>
@@ -11,18 +13,24 @@
 #include <sstream>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <condition_variable>
 
 #define MAXMOVESPERGAME 1024
 
 #define SIZE 100
 
-class IChessPlayer {
-public:
-    virtual ~IChessPlayer() = default;
-    virtual void sendCommand(const std::string& cmd) = 0;
-    virtual std::string receiveCommand() = 0;
-    virtual bool hasData() = 0; 
-};
+void engineThread(
+    BoardState& boardState,
+    std::atomic<bool>& gameOver,
+    int color,
+    EngineProcess& engine,
+    std::mutex& m,
+    std::condition_variable& cv
+);
+
 
 void initTexture(SDL_Renderer *rend);
 
