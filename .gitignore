@@ -7,3 +7,4 @@ build/netClient
 build/matchManager
 build/engineClient
 build/UCIClient
+build/humanClient
