@@ -20,7 +20,7 @@ struct Packet {
 };
 void serverListener(const int socketFD, std::atomic<bool>& recvFlag, struct Packet& recvPacket, std::mutex& m);
 
-void humanServerListner(
+void humanServerListener(
     const int socketFD,
     BoardState& boardState,
     std::atomic<bool>& guiNeedsToMove,

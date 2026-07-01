@@ -24,6 +24,7 @@ void renderBoard(
     uint32_t squareLightColor,
     std::string textureDir,
     int playerSide,
+    std::string& moveMadeStr,
     std::mutex& m,
     std::condition_variable& cv);
 void initTexture(SDL_Renderer *rend, std::string textureDir);

@@ -159,6 +159,7 @@ int main(){
 
     uint32_t lightColor = 0xffffffff;
     uint32_t darkColor = 0xff4a9627;
+    std::string moveMade;
     renderBoard(
         std::ref(boardState),
         std::ref(gameOver),
@@ -166,6 +167,7 @@ int main(){
         lightColor,
         "img",
         playerColor,
+        std::ref(moveMade),
         std::ref(threadMutex),
         std::ref(mutexCondition)
     );

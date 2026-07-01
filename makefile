@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++17 -Wall -O3
 SDL_FLAGS = `sdl2-config --cflags --libs` -lSDL2_image
 
 # 'all' is the default target. It tells Make to build both executables.
-all: UCIClient engine createKeys engineClient matchManager
+all: UCIClient engine createKeys engineClient matchManager humanClient
 
 createKeys: objects/createKeys.o objects/openBook.o
 	$(CXX) $(CXXFLAGS) -o build/createKeys objects/createKeys.o objects/openBook.o
@@ -26,6 +26,12 @@ matchManager: objects/matchManager.o objects/physics.o objects/openBook.o object
 
 objects/matchManager.o: src/matchManager.cpp
 	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o objects/matchManager.o src/matchManager.cpp
+
+humanClient: objects/humanClient.o objects/netClient.o objects/physics.o objects/gui.o objects/openBook.o
+	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -o build/humanClient objects/netClient.o objects/humanClient.o objects/physics.o objects/gui.o objects/openBook.o
+
+objects/humanClient.o: src/humanClient.cpp
+	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o  objects/humanClient.o src/humanClient.cpp
 
 engineClient: objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o
 	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/engineClient objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o
@@ -73,4 +79,4 @@ objects/transpositionTable.o: src/transpositionTable.cpp
 # Clean up both executables
 clean:
 	rm -f objects/*.o
-	rm -f build/main build/engine build/createKeys build/netClient build/matchManager build/engineClient build/UCIClient
+	rm -f build/main build/engine build/createKeys build/netClient build/matchManager build/engineClient build/UCIClient build/humanClient

@@ -132,7 +132,7 @@ void serverListener(
     }
 }
 
-void humanServerListner(
+void humanServerListener(
     const int socketFD,
     BoardState& boardState,
     std::atomic<bool>& guiNeedsToMove,
@@ -158,6 +158,7 @@ void humanServerListner(
             lk.unlock();
         }
         if(response.find("go") != std::string::npos){
+            std::cerr << "guiNeedsToMove" << std::endl;
             guiNeedsToMove = true;
             cv.notify_all();
         }
@@ -181,6 +182,7 @@ void humanSender(
         cv.wait(lk, [&moveMadeStr, &guiNeedsToMove, &gameOver]{
             return gameOver || (!moveMadeStr.empty() && guiNeedsToMove);       
         });
+        std::cerr << "humanSender woken up" << std::endl;
         if(gameOver){
             cv.notify_all();
             return;

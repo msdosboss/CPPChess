@@ -97,6 +97,8 @@ int main(int argc, char **argv) {
         std::ref(responseReady)
     );
 
+    //This will be unused for matchManager
+    std::string lastMoveMade;
     renderBoard(
         std::ref(gameState.state),
         std::ref(gameState.gameOver),
@@ -104,6 +106,7 @@ int main(int argc, char **argv) {
         lightColor,
         "img",
         -1,
+        std::ref(lastMoveMade),
         std::ref(gameState.threadSyncMutex),
         std::ref(gameState.mutexCondition) //This will be unused for matchManager
     );

@@ -41,6 +41,7 @@ void renderBoard(
         uint32_t squareLightColor,
         std::string textureDir,
         int playerSide,
+        std::string& moveMadeStr,
         std::mutex& m,
         std::condition_variable& cv
     ){
@@ -157,13 +158,35 @@ void renderBoard(
             for(int i = 0; i < legalMoves.count; i++){
                 //Still need to do something about pawn promo
                 if(legalMoves.moves[i].source == sourceIndex && legalMoves.moves[i].dest == destIndex){
+                    Move selectedMove = legalMoves.moves[i];
                     UndoState undoState;
-                    makeMove(boardState, legalMoves.moves[i], undoState);
+                    makeMove(boardState, selectedMove, undoState);
+                    //Converting move to UCI move string
+                    char f1 = 'a' + (sourceIndex % 8);
+                    char r1 = '1' + (sourceIndex / 8);
+                    char f2 = 'a' + (destIndex % 8);
+                    char r2 = '1' + (destIndex / 8);
+                    moveMadeStr = std::string(1, f1) + r1 + f2 + r2;
+
+                    if((selectedMove.flags & KNIGHTPROMO) == KNIGHTPROMO){
+                        moveMadeStr += 'n';
+                    }
+                    else if((selectedMove.flags & BISHOPPROMO) == BISHOPPROMO){
+                        moveMadeStr += 'b';
+                    }
+                    else if((selectedMove.flags & ROOKPROMO) == ROOKPROMO){
+                        moveMadeStr += 'r';
+                    }
+                    else if((selectedMove.flags & QUEENPROMO) == QUEENPROMO){
+                        moveMadeStr += 'q';
+                    }
+
                     legalMoves = generateLegalMoves(boardState);
                     if(legalMoves.count == 0){
                         gameOver = true;
                     }
                     //Tell the engine to make its move
+                    std::cerr << "moveMadeStr: " << moveMadeStr << std::endl;
                     cv.notify_all();
                     break;
                 } 
