@@ -30,6 +30,7 @@ inline std::unordered_map<uint64_t, std::vector<BookMove>> openBook;
 #define BLACKQUEENCASTLE 3
 
 
+std::string getRandomFen(const std::string& fileName);
 void loadOpeningBook(const std::string& fileName);
 bool getBookMove(uint64_t zobristHash, Move& openMove);
 void initZobristTable(const std::string fileName);

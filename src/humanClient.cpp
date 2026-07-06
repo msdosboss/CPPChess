@@ -69,7 +69,7 @@ int main(int argc, char **argv){
     std::atomic<bool> guiNeedsToMove = false;
 
     std::thread serverThread(
-        humanServerListener, // You will write this variant
+        humanServerListener,
         sockDesc,
         std::ref(boardState),
         std::ref(guiNeedsToMove),

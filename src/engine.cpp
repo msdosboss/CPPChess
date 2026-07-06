@@ -146,5 +146,4 @@ void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds 
 
     std::cout << "info score cp " << finalEval << std::endl;
     std::cout << "bestmove " << strMove << std::endl;
-
 }

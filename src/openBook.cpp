@@ -19,6 +19,32 @@ void loadOpeningBook(const std::string& fileName){
     }
 }
 
+//This is kind of slow I could store this all in memory into a vec with a load function
+//then grab from vector if this is to slow
+std::string getRandomFen(const std::string& fileName){
+    std::ifstream file(fileName);
+
+    if(!file.is_open()){
+        std::cerr << "Error: Could not open file: " << fileName <<" in getRandomFen" << std::endl;
+        return STARTFEN;
+    }
+    int lineCount = 0;
+    std::string line;
+    while(std::getline(file, line)){
+        lineCount++;
+    }
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> dist(0, lineCount - 1);
+    int randomIndex = dist(rng);
+    file.close();
+
+    file = std::ifstream(fileName);
+    for(int i = 0; i < randomIndex; i++){
+        std::getline(file, line);
+    }
+    return line;
+}
+
 
 bool getBookMove(uint64_t zobristHash, Move& openMove){
     if(openBook.count(zobristHash) == 0){

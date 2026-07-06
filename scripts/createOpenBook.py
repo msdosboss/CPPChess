@@ -8,6 +8,21 @@ BLACKKINGCASTLE  = 2
 BLACKQUEENCASTLE = 3
 
 
+def parsePGNForFens(filePath: str):
+    pgn = open(filePath)
+    writeFile = open("../build/data/fenList.txt", "w")
+    currentGame = chess.pgn.read_game(pgn)
+
+    while(currentGame != None):
+        board = currentGame.board()
+        for move in currentGame.mainline_moves():
+            board.push(move)
+        writeFile.write(board.fen() + "\n")
+        currentGame = chess.pgn.read_game(pgn)
+
+    pgn.close()
+    writeFile.close()
+
 def parsePGN(filePath: str, keys : object):
     pgn = open(filePath)
 
@@ -130,6 +145,7 @@ def boardToZobristHash(board : chess.board, keys : object):
     return zobristHash
 
 if __name__ == "__main__":
-    keys = loadKeys()
-    parsePGN("games/Nunn_Openings.pgn", keys)    
+    #keys = loadKeys()
+    #parsePGN("games/Nunn_Openings.pgn", keys)
+    parsePGNForFens("games/8moves_v3.pgn")
 
