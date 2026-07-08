@@ -369,12 +369,8 @@ void matchManagerThread(
     bool& responseReady,
     std::string& UCIResponse
 ){
-
-    //auto now = std::chrono::system_clock::now();
-    std::time_t timeBeforeMove = 0;
-    std::time_t timeAfterMove = 0;
-    //std::chrono::milliseconds timeBeforeMove = std::chrono::milliseconds::zero();
-    //std::chrono::milliseconds timeAfterMove = std::chrono::milliseconds::zero();
+	auto timeBeforeMove = std::chrono::steady_clock::now();
+	auto timeStart = timeBeforeMove;
     while(true){
         std::unique_lock lk(gameState.threadSyncMutex);
         gameState.mutexCondition.wait(lk, [&gameState, &responseReady]{ return gameState.gameOver || responseReady;});
@@ -383,15 +379,14 @@ void matchManagerThread(
             //Dont need to notify because CLIThread already woke up other threads
             break;
         }
-        //std::time is in seconds (meaning we probably eventually want the higher res clock in chrono)
-        timeAfterMove = std::time(nullptr) * 1000;
+		auto timeAfterMove = std::chrono::steady_clock::now();
 
-        std::time_t timeDiff = timeAfterMove - timeBeforeMove;
-        if (timeBeforeMove != 0) {
+		auto timeDiff = std::chrono::duration_cast<std::chrono::milliseconds>(timeAfterMove - timeBeforeMove);
+        if (timeBeforeMove != timeStart) {
             if (gameState.turnState == WHITE) {
-                gameState.whiteTime -= timeDiff;
+                gameState.whiteTime -= timeDiff.count();
             } else {
-                gameState.blackTime -= timeDiff;
+                gameState.blackTime -= timeDiff.count();
             }
         }
 
@@ -417,7 +412,7 @@ void matchManagerThread(
             UndoState undo;
             makeMove(gameState.state, engineMove, undo);
             std::cerr << "After makeMove call: " << boardStateToFen(gameState.state) << std::endl;
-            UCIResponse = ""; //Clear UCIResponse
+            UCIResponse = "";
             responseReady = false;
             gameState.turnState = gameState.state.sideToMove;
             MoveList legalMoves = generateLegalMoves(gameState.state);
@@ -428,7 +423,7 @@ void matchManagerThread(
                 gameState.mutexCondition.notify_all();
                 break;
             }
-            timeBeforeMove = std::time(nullptr) * 1000;
+			timeBeforeMove = std::chrono::steady_clock::now();
             lk.unlock();
             gameState.mutexCondition.notify_all();
         }

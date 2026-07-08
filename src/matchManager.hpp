@@ -17,7 +17,7 @@
 #include <fcntl.h>
 #include <cassert>
 #include <cstdlib>
-#include <ctime>
+#include <chrono>
 
 struct GameState {
     std::atomic<bool> gameOver;
