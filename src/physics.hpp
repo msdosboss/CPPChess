@@ -110,6 +110,7 @@ std::string boardStateToFen(BoardState& boardState);
 void moveSwap(MoveList legalMoves, Move possibleBestMove);
 std::string promotionChar(Move move);
 std::string createPositionCmd(BoardState& boardState);
+std::string moveToStrMove(union Move);
 
 inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}
 inline void clearBit(Bitboard& bb, int square){bb &= ~(1ULL << square);}

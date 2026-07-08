@@ -411,6 +411,10 @@ void matchManagerThread(
 
             UndoState undo;
             makeMove(gameState.state, engineMove, undo);
+			gameHistory.undoStates[gameHistory.moveIndex] = undo;
+			gameHistory.moves[gameHistory.moveIndex] = engineMove;
+			gameHistory.moveFens[gameHistory.moveIndex++] = boardStateToFen(gameState.state);
+			
             std::cerr << "After makeMove call: " << boardStateToFen(gameState.state) << std::endl;
             UCIResponse = "";
             responseReady = false;
@@ -418,7 +422,18 @@ void matchManagerThread(
             MoveList legalMoves = generateLegalMoves(gameState.state);
             //Checks if game is over
             if(legalMoves.count == 0){
+				int defenderSide = gameState.state.sideToMove;
+				int attackerSide = (defenderSide == WHITE) ? BLACK : WHITE;
+				int kingIndex = __builtin_ctzll(gameState.state.pieces[defenderSide][KING]);
+				if (isSquareAttacked(gameState.state, kingIndex, attackerSide)) {
+					gameHistory.winner = attackerSide;
+				}
+				else {
+					gameHistory.winner = DRAW;
+				}
+
                 gameState.gameOver = true;
+				gameHistoryToFile(gameHistory, "data/game_history.txt");
                 lk.unlock();
                 gameState.mutexCondition.notify_all();
                 break;
@@ -431,6 +446,26 @@ void matchManagerThread(
             lk.unlock();
         }
     }
+}
+
+void gameHistoryToFile(struct GameHistory& history, const std::string filename) {
+	std::ofstream file(filename, std::ios::app);
+	file << "White Player name: " << history.whiteName << std::endl;
+	file << "Black Player name: " << history.blackName << std::endl;
+	file << "Starting fen: " << history.startFen << std::endl;
+	if (history.winner == DRAW) {
+		file << "Game Result: Draw" << std::endl;
+	}
+	else {
+		file << "Game Result: " << ((history.winner == WHITE) ? "White" : "Black") << " wins!" << std::endl;
+	}
+
+	for (unsigned int i = 0; i < history.moveIndex; ++i) {
+		file << "fen of position #" << i << " " << history.moveFens[i] << std::endl;
+		file << "move of position #" << i << " " << moveToStrMove(history.moves[i]) << std::endl;
+	}
+	file << std::endl << std::endl << "=================================================================================================" << std::endl << std::endl;
+	file.close();
 }
 
 ///intended for match manager internal use only

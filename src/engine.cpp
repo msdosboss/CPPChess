@@ -140,9 +140,7 @@ void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds 
     }
 
     Move selectedMove = searchBestMoveIt(boardState, maxDepth, duration, searchInfo, finalEval);
-    std::string sourceSquare = squareToAlgebraic(selectedMove.source);
-    std::string destSquare = squareToAlgebraic(selectedMove.dest);
-    std::string strMove = sourceSquare + destSquare + promotionChar(selectedMove);
+	std::string strMove = moveToStrMove(selectedMove);
 
     std::cout << "info score cp " << finalEval << std::endl;
     std::cout << "bestmove " << strMove << std::endl;

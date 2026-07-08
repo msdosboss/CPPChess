@@ -8,3 +8,4 @@ build/matchManager
 build/engineClient
 build/UCIClient
 build/humanClient
+build/data/game_history.txt

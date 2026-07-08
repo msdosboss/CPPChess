@@ -32,14 +32,17 @@ struct GameState {
     BoardState state;
 };
 
+#define DRAW 2
+
 struct GameHistory {
-    uint8_t winner; //0 for white 1 for black
+    uint8_t winner; //0 for white 1 for black 2 for draw
     unsigned int moveIndex;
     std::string whiteName;
     std::string blackName;
     std::string startFen;
     std::string moveFens[512];
-    Move moveArray[512]; //Sensible default for a max-length game
+    struct UndoState undoStates[512];
+    Move moves[512]; //Sensible default for a max-length game
 };
 
 void engineThread(
@@ -57,6 +60,7 @@ void matchManagerThread(
 );
 
 void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mutex& m, std::condition_variable& cv);
+void gameHistoryToFile(struct GameHistory& history, const std::string filename);
 
 #define PACKET_STR_SIZE 128
 #define LISTEN_PORT_WHITE 3001

@@ -1210,3 +1210,11 @@ std::string createPositionCmd(BoardState& boardState){
     return positionCmd;
 
 }
+
+std::string moveToStrMove(union Move move) {
+	std::string result;
+	result += squareToAlgebraic(move.source);
+	result += squareToAlgebraic(move.dest);
+	result += promotionChar(move);
+	return result;
+}
