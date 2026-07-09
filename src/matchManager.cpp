@@ -17,6 +17,7 @@ int main(int argc, char **argv) {
         .whiteTime = 60*5*1000 //default time in ms: 5 minutes
     };
     std::string fen = STARTFEN;
+	unsigned int gamesToPlay = 1;
     for (int i = 0; i < argc; ++i) {
         std::string s = std::string(argv[i]);
         if (s == "-wt") {
@@ -25,6 +26,9 @@ int main(int argc, char **argv) {
         else if (s == "-bt") {
             gameState.blackTime = std::atoi(argv[i+1]);
         } 
+		else if (s == "--benchmark") {
+			gamesToPlay = std::atoi(argv[i+1]);
+		}
         else if (s == "-f") {
             fen = std::string(argv[i+1]);
             int j = i + 2;
@@ -33,6 +37,7 @@ int main(int argc, char **argv) {
             while (
                 std::string(argv[j]).find("-wt") == std::string::npos &&
                 std::string(argv[j]).find("-bt") == std::string::npos &&
+                std::string(argv[j]).find("--benchmark") == std::string::npos &&
                 j < argc
             ) {
                 fen += " ";
@@ -65,73 +70,70 @@ int main(int argc, char **argv) {
     gameState.turnState = gameState.state.sideToMove;
 
 
-    userMatchManagerThread = std::thread(
-        matchManagerThread,
-        std::ref(gameState),
-        std::ref(gameHistory),
-        std::ref(responseReady),
-        std::ref(UCIResponse)
-    );
+	userCLIThread = std::thread(
+		CLIThread,
+		std::ref(gameState.gameOver),
+		std::ref(gameState.timeUp),
+		std::ref(gamesToPlay),
+		std::ref(gameState.threadSyncMutex),
+		std::ref(gameState.mutexCondition)        
+	);
 
-    userCLIThread = std::thread(
-        CLIThread,
-        std::ref(gameState.gameOver),
-        std::ref(gameState.timeUp),
-        std::ref(gameState.threadSyncMutex),
-        std::ref(gameState.mutexCondition)        
-    );
-    engineOneThread = std::thread(
-        engineThread,
-        std::ref(gameState),
-        std::ref(gameHistory),
-        WHITE,
-        std::ref(UCIResponse),
-        std::ref(responseReady)
-    );
-    engineTwoThread = std::thread(
-        engineThread,
-        std::ref(gameState),
-        std::ref(gameHistory),
-        BLACK,
-        std::ref(UCIResponse),
-        std::ref(responseReady)
-    );
+	do {
+		userMatchManagerThread = std::thread(
+			matchManagerThread,
+			std::ref(gameState),
+			std::ref(gameHistory),
+			std::ref(responseReady),
+			std::ref(UCIResponse)
+		);
+		engineOneThread = std::thread(
+			engineThread,
+			std::ref(gameState),
+			std::ref(gameHistory),
+			WHITE,
+			std::ref(UCIResponse),
+			std::ref(responseReady)
+		);
+		engineTwoThread = std::thread(
+			engineThread,
+			std::ref(gameState),
+			std::ref(gameHistory),
+			BLACK,
+			std::ref(UCIResponse),
+			std::ref(responseReady)
+		);
 
-    //This will be unused for matchManager
-    std::string lastMoveMade;
-    renderBoard(
-        std::ref(gameState.state),
-        std::ref(gameState.gameOver),
-        darkColor,
-        lightColor,
-        "img",
-        -1,
-        std::ref(lastMoveMade),
-        std::ref(gameState.threadSyncMutex),
-        std::ref(gameState.mutexCondition) //This will be unused for matchManager
-    );
+		//This will be unused for matchManager
+		std::string lastMoveMade;
+		renderBoard(
+			std::ref(gameState.state),
+			std::ref(gameState.gameOver),
+			darkColor,
+			lightColor,
+			"img",
+			-1,
+			std::ref(lastMoveMade),
+			std::ref(gameState.threadSyncMutex),
+			std::ref(gameState.mutexCondition) //This will be unused for matchManager
+		);
 
-    //If game ends because of gui close
-    gameState.gameOver = true;
-    gameState.mutexCondition.notify_all();
+		//If game ends because of gui close
+		gameState.gameOver = true;
+		gameState.mutexCondition.notify_all();
 
-    if(userMatchManagerThread.joinable()){
-        userMatchManagerThread.join();
-    }
-    if(engineOneThread.joinable()){
-        engineOneThread.join();
-    }
-    if(engineTwoThread.joinable()){
-        engineTwoThread.join();
-    }
-    if(userCLIThread.joinable()){
-        userCLIThread.join();
-    }
+		userMatchManagerThread.join();
+		engineOneThread.join();
+		engineTwoThread.join();
+		/*if(userCLIThread.joinable()){
+			userCLIThread.join();
+		}*/
+	} while (--gamesToPlay != 0);
     //I think it's fine to join now, UCIThread can't block infinitely anymore.
     //It was actually the engine threads blocking.
     //~~Since UCI thread can block forever on std::in we can't ensure that it will be joinable
     //~~Let the OS handle it
-    //userCLIThread.detach();
+    userCLIThread.detach();
 
 }
 
@@ -257,8 +259,9 @@ void engineThread(
         if(gameState.gameOver){
             char buf[] = "bye";
             send(clientDesc, (void *) buf, sizeof(buf), MSG_DONTWAIT);
-            close(clientDesc); //this technically has a return value
-                //to indicate failure, but it's dumb
+            if (close(clientDesc) != 0) {
+				std::cerr << "Failed to close socket in match manager. errno=" << errno << std::endl;
+			}
             break;
         }
 
@@ -300,6 +303,7 @@ void engineThread(
                     std::cerr << "res = " << res << std::endl;
                     close(clientDesc); //this technically has a return value
                         //to indicate failure, but it's dumb
+					close(sockDesc);
                     return;
                 }
                 else if (gameState.timeUp) {
@@ -319,10 +323,12 @@ void engineThread(
         if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
             close(clientDesc);
+			close(sockDesc);
             return;
         } else if (bytesRead == -1) {
             std::cerr << "matchManager recv call failed with errno=" << errno << std::endl;
             close(clientDesc);
+			close(sockDesc);
             return;
         }
         //ensure std::string cast wont pickup garbage
@@ -339,16 +345,19 @@ void engineThread(
         lk.unlock();
         gameState.mutexCondition.notify_all();
     }
+	close(clientDesc);
+	close(sockDesc);
     return;
 }
 
-void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mutex& m, std::condition_variable& cv){
+void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned int& gamesToPlay, std::mutex& m, std::condition_variable& cv){
     while(true){
         std::string userInput;
         std::cin >> userInput;
         std::cout << userInput;
-        if(userInput == "abort" || std::cin.eof() || gameOver == true){
+        if(userInput == "abort" || std::cin.eof() /*|| gameOver == true*/){
             std::unique_lock lk(m);
+			gamesToPlay = 0;
             gameOver = true;
             lk.unlock();
             cv.notify_all();

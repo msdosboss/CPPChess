@@ -59,7 +59,7 @@ void matchManagerThread(
     std::string& UCIResponse
 );
 
-void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, std::mutex& m, std::condition_variable& cv);
+void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned int& gamesToPlay, std::mutex& m, std::condition_variable& cv);
 void gameHistoryToFile(struct GameHistory& history, const std::string filename);
 
 #define PACKET_STR_SIZE 128
