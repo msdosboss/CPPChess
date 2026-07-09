@@ -146,6 +146,7 @@ void humanServerListener(
         if (bytesRead <= 0) {
             //Server disconnected or error occurred
             std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
+            gameOver = true;
             if (bytesRead == -1)
                 std::cerr << "errno=" << errno << std::endl;
             break;

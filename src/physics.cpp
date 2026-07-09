@@ -1126,18 +1126,23 @@ std::string boardStateToFen(BoardState& boardState){
     }
     fen += ' ';
 
+    std::string castlingStr = "";
     if(boardState.castlingRights.kingSideCastleWhite){
-        fen += 'K'; 
+        castlingStr += 'K'; 
     }
     if(boardState.castlingRights.queenSideCastleWhite){
-        fen += 'Q'; 
+        castlingStr += 'Q'; 
     }
     if(boardState.castlingRights.kingSideCastleBlack){
-        fen += 'k'; 
+        castlingStr += 'k'; 
     }
     if(boardState.castlingRights.queenSideCastleBlack){
-        fen += 'q'; 
+        castlingStr += 'q'; 
     }
+    if(castlingStr.empty()){
+        castlingStr = "-";
+    }
+    fen += castlingStr;
     fen += ' ';
 
     if(boardState.enPassantSquare == -1){
