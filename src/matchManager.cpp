@@ -46,6 +46,8 @@ int main(int argc, char **argv) {
             }
         } 
     }
+    std::time_t blackTime = gameState.blackTime;
+    std::time_t whiteTime = gameState.whiteTime;
     struct GameHistory gameHistory = {
         .moveIndex = 0,
         .startFen = fen,
@@ -80,6 +82,18 @@ int main(int argc, char **argv) {
 	);
 
 	do {
+        //Reset gameState and gameHistory
+        gameState.gameOver = false;
+        gameState.whiteReady = false;
+        gameState.blackReady = false;
+        gameState.timeUp = false;
+        gameState.whiteTime = whiteTime;
+        gameState.blackTime = blackTime;
+        fenToBoardState(fen, gameState.state);
+        gameState.turnState = gameState.state.sideToMove;
+        gameHistory.moveIndex = 0;
+        gameHistory.startFen = fen;
+
 		userMatchManagerThread = std::thread(
 			matchManagerThread,
 			std::ref(gameState),
