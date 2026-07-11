@@ -3,6 +3,7 @@
 
 #include "physics.hpp"
 #include "gui.hpp"
+#include "netUtils.hpp"
 #include "openBook.hpp"
 #include <thread>
 #include <arpa/inet.h>

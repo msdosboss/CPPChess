@@ -1,7 +1,10 @@
 #include "matchManager.hpp"
 
+/*
+//Moved to netUtils
 ///Private function signatures intended only for use in current file
 void validateSend(int sendRetVal, int expectedByteCount);
+*/
 ///end private signatures
 
 //std::mutex m; //refactored the globals out
@@ -490,7 +493,8 @@ void gameHistoryToFile(struct GameHistory& history, const std::string filename) 
 	file << std::endl << std::endl << "=================================================================================================" << std::endl << std::endl;
 	file.close();
 }
-
+/*
+//Moved to netUtils
 ///intended for match manager internal use only
 void validateSend(int sendRetVal, int expectedByteCount) {
     if (sendRetVal == -1) {
@@ -504,3 +508,4 @@ void validateSend(int sendRetVal, int expectedByteCount) {
             << "continuing execution..." << std::endl;
     } else { }
 }
+*/
