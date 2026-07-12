@@ -63,7 +63,6 @@ void matchManagerThread(
 void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned int& gamesToPlay, std::mutex& m, std::condition_variable& cv);
 void gameHistoryToFile(struct GameHistory& history, const std::string filename);
 
-#define PACKET_STR_SIZE 128
 #define LISTEN_PORT_WHITE 3001
 #define LISTEN_PORT_BLACK 3002
 const int ENGINE_LISTEN_PORT[2] = {LISTEN_PORT_WHITE, LISTEN_PORT_BLACK};

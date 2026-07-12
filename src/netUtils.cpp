@@ -1,8 +1,26 @@
 #include "netUtils.hpp"
 
-int NetConnection::netRecv(){
-    return 0;
+NetConnection::NetConnection(int sock){
+    sockfd = sock;
+    recvQueue = std::queue<std::string>();
+    accumulatedResponse = std::string();
+}
 
+int NetConnection::netRecv(){
+    char buf[PACKET_STR_SIZE];
+    int bytesRecv = recv(sockfd, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
+    if(bytesRecv > 0){
+        buf[bytesRecv] = '\0';
+        accumulatedResponse.append(buf, bytesRecv);
+        size_t newlinePos;
+        while((newlinePos = accumulatedResponse.find('\n')) != std::string::npos){
+            //This will include the newline
+            std::string token = accumulatedResponse.substr(0, newlinePos + 1);
+            recvQueue.push(token);
+            accumulatedResponse.erase(0, newlinePos + 1);
+        }
+    }
+    return bytesRecv;
 }
 
 int NetConnection::netSend(std::string msg){
@@ -12,18 +30,23 @@ int NetConnection::netSend(std::string msg){
 }
 
 int NetConnection::netClose(){
-    return close(sockfd);
+    int res = close(sockfd);
+
+    if(res != 0){
+        std::cerr << "socket failed to close. errno=" << errno << std::endl;
+    }
+
+    return res;
 
 }
 
-std::string NetConnection::dequeue(){
+std::string NetConnection::netDequeue(){
     if(recvQueue.empty()){
         return "";
     }
     std::string response = recvQueue.front();
     recvQueue.pop();
     return response;
-
 }
 
 
