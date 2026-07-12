@@ -49,7 +49,17 @@ std::string NetConnection::netDequeue(){
     return response;
 }
 
+void NetConnection::unsetBlocking(){
+    int flags = fcntl(sockfd, F_GETFL);
+    flags |= O_NONBLOCK;
+    fcntl(sockfd, F_SETFL, flags);
+}
 
+void NetConnection::setBlocking(){
+    int flags = fcntl(sockfd, F_GETFL);
+    flags &= ~(O_NONBLOCK);
+    fcntl(sockfd, F_SETFL, flags);
+}
 
 void validateSend(int sendRetVal, int expectedByteCount) {
     if (sendRetVal == -1) {

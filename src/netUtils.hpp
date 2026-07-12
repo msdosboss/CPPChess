@@ -6,10 +6,11 @@
 #include <sstream>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
 
-#define PACKET_STR_SIZE 128
+#define PACKET_STR_SIZE 1024
 
 class NetConnection{
     private:
@@ -22,6 +23,8 @@ class NetConnection{
         int netSend(std::string msg);
         int netClose();
         std::string netDequeue();
+        void setBlocking();
+        void unsetBlocking();
 };
 
 void validateSend(int sendRetVal, int expectedByteCount);

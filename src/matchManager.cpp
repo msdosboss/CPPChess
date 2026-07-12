@@ -201,9 +201,8 @@ void engineThread(
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); //TODO - magic number
     } while (clientDesc == -1);
-    int flags = fcntl(clientDesc, F_GETFL);
-    flags &= ~(O_NONBLOCK);
-    fcntl(clientDesc, F_SETFL, flags);
+    NetConnection clientConnection(clientDesc);
+    clientConnection.setBlocking();
     if (color == WHITE) {
         gameState.whiteReady = true;
     }
@@ -217,18 +216,20 @@ void engineThread(
         << ":" << ntohs(clientConnInfo.sin_port) << std::endl;
     
     //std::cerr << "wready = " << gameState.whiteReady << " bready = " << gameState.blackReady << std::endl;
-    std::string cmd = "uci\n";
-    send(clientDesc, cmd.c_str(), cmd.length(), 0);
-    char buf[PACKET_STR_SIZE]; 
+    clientConnection.netSend("uci\n");
+    //std::string cmd = "uci\n";
+    //send(clientDesc, cmd.c_str(), cmd.length(), 0);
+    //char buf[PACKET_STR_SIZE]; 
     std::string cppBuf;
     do {
-        res = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
-        buf[PACKET_STR_SIZE - 1] = '\0';
-        cppBuf = std::string(buf);
+        //res = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
+        //buf[PACKET_STR_SIZE - 1] = '\0';
+        res = clientConnection.netRecv();
+        cppBuf = clientConnection.netDequeue();
     } while (cppBuf.find("id name") == std::string::npos);
-    std::cerr << "{{{ " << buf << " }}}" << std::endl << std::endl;
+    std::cerr << "{{{ " << cppBuf << " }}}" << std::endl << std::endl;
     if (res > 0) {
-        cppBuf = std::string(buf);
+        //cppBuf = std::string(buf);
         std::istringstream ss(cppBuf);
         std::string token;
         while (ss >> token) {
@@ -256,15 +257,20 @@ void engineThread(
         std::cerr << "black's name = " << gameHistory.blackName << std::endl;
     }
 
-    cmd = "isready\n";
-    send(clientDesc, cmd.c_str(), cmd.length(), 0);
-    
+    //cmd = "isready\n";
+    //send(clientDesc, cmd.c_str(), cmd.length(), 0);
+    clientConnection.netSend("isready\n");
+
     //draining all data from pending recv queue
-    while (1) { 
+    //Checking for readyok
+    std::string token;
+    do { 
         //char buf[PACKET_STR_SIZE]; 
-        const int res = recv(clientDesc, buf, PACKET_STR_SIZE, MSG_DONTWAIT);
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) { break; }
-    }
+        clientConnection.netRecv();
+        token = clientConnection.netDequeue();
+        //const int res = recv(clientDesc, buf, PACKET_STR_SIZE, MSG_DONTWAIT);
+        //if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) { break; }
+    } while(token.find("readyok") == std::string::npos);
 
     while (true) {
         std::unique_lock lk(gameState.threadSyncMutex);
@@ -274,38 +280,43 @@ void engineThread(
         std::cerr << "matchManager engine thread woken up, color=" << color << std::endl;
         lk.unlock(); //This allows main thread to continue to act
         if(gameState.gameOver){
-            char buf[] = "bye";
-            send(clientDesc, (void *) buf, sizeof(buf), MSG_DONTWAIT);
-            if (close(clientDesc) != 0) {
+            //char buf[] = "bye";
+            //send(clientDesc, (void *) buf, sizeof(buf), MSG_DONTWAIT);
+            /*if (close(clientDesc) != 0) {
 				std::cerr << "Failed to close socket in match manager. errno=" << errno << std::endl;
-			}
+			}*/
+            clientConnection.netSend("bye");
+            clientConnection.netClose();
+            close(sockDesc);
             break;
         }
 
+        std::string cmd;
         lk.lock();
         cmd = createPositionCmd(gameState.state) + "\n";
         lk.unlock();
         assert(cmd.length() <= PACKET_STR_SIZE); //Need some form of bounds checking
             //better to crash than error silently
 
-        char buf[PACKET_STR_SIZE] = {0};
-        std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
-        buf[PACKET_STR_SIZE - 1] = '\0';
+        //std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
+        //buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
-        std::cerr << "matchManager DEBUG: transmitting {" << std::string(buf) << "}" << std::endl;
-        int bytesSent = send(clientDesc, (void *) buf, cmd.length(), MSG_MORE);
-        validateSend(bytesSent, cmd.length());
+        std::cerr << "matchManager DEBUG: transmitting {" << cmd << "}" << std::endl;
+        //int bytesSent = send(clientDesc, (void *) buf, cmd.length(), MSG_MORE);
+        clientConnection.netSend(cmd);
+        //validateSend(bytesSent, cmd.length());
         
         cmd = "go wtime " + std::to_string(gameState.whiteTime) + " btime " + std::to_string(gameState.blackTime) + "\n";
-        std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
-        buf[PACKET_STR_SIZE - 1] = '\0';
+        //std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
+        //buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
-        std::cerr << "matchManager DEBUG2: transmitting {" << std::string(buf) << "}" << std::endl;
-        bytesSent = send(clientDesc, (void *) buf, cmd.length(), 0);
-        validateSend(bytesSent, cmd.length());
+        std::cerr << "matchManager DEBUG2: transmitting {" << cmd << "}" << std::endl;
+        clientConnection.netSend(cmd);
+        //validateSend(bytesSent, cmd.length());
         //await engine response
         int bytesRead;
         std::string accumulatedResponse = "";
+        char buf[PACKET_STR_SIZE] = {0};
         do {
             std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
             bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
