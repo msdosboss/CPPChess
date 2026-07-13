@@ -19,6 +19,7 @@ struct SearchInfo{
     std::chrono::steady_clock::time_point start;
     std::chrono::seconds duration;
     std::atomic<int> nodesSearched;
+	std::vector<Move> killerMoveArray;
 };
 
 struct BoardHistoryEntry{
@@ -47,7 +48,7 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval);
 int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo);
 int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo);
 Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo, int& finalEval);
-void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove);
+void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove, struct SearchInfo& searchInfo, int depth);
 
 
 #endif

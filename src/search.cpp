@@ -5,6 +5,7 @@ Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds 
     searchInfo.start = std::chrono::steady_clock::now();
     searchInfo.duration = duration;
     searchInfo.nodesSearched = 0;
+	searchInfo.killerMoveArray = std::vector<Move>(maxDepth + 1);
 
     Move openMove;
     if(getBookMove(boardState.zobristHash, openMove)){
@@ -27,7 +28,7 @@ Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds 
     return topMove;
 }
 
-void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove){
+void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove, struct SearchInfo& searchInfo, int depth){
     for(int i = 0; i < moveList.count; i++){
         if(moveList.moves[i].raw == bestMove.raw){
             moveList.moveScores[i] = INFINITESCORE;
@@ -51,6 +52,9 @@ void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove){
         else{
             moveList.moveScores[i] = 100 + (10 * destPieceType) - sourcePieceType;
         }
+		if (moveList.moves[i].raw == searchInfo.killerMoveArray[depth].raw) {
+			moveList.moveScores[i] = 1;
+		}
     }
 }
 
@@ -139,7 +143,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
         return quiescenceSearch(boardState, 5, alpha, beta, searchInfo);
     }
     MoveList legalMoves = generateLegalMoves(boardState);
-    scoreMoves(boardState, legalMoves, possibleBestMove);
+    scoreMoves(boardState, legalMoves, possibleBestMove, searchInfo, depth);
     if(legalMoves.count == 0){
         if(boardState.sideToMove == WHITE){
             Bitboard kingbb = boardState.pieces[WHITE][KING];
@@ -212,6 +216,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
         else if (maxScore >= beta) {
             // We broke the beta limit. This is a floor.
             flag = FLAG_BETA;
+			searchInfo.killerMoveArray[depth] = bestMove;
         }
         else {
             // The score landed perfectly between originalAlpha and beta.
