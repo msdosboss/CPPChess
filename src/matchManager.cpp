@@ -442,37 +442,37 @@ void matchManagerThread(
             MoveList legalMoves = generateLegalMoves(gameState.state);
             //Checks if game is over
             if(legalMoves.count == 0){
-				int defenderSide = gameState.state.sideToMove;
-				int attackerSide = (defenderSide == WHITE) ? BLACK : WHITE;
-				int kingIndex = __builtin_ctzll(gameState.state.pieces[defenderSide][KING]);
-				if (isSquareAttacked(gameState.state, kingIndex, attackerSide)) {
-					gameHistory.winner = attackerSide;
-				}
-				else {
-					gameHistory.winner = DRAW;
-				}
+                int defenderSide = gameState.state.sideToMove;
+                int attackerSide = (defenderSide == WHITE) ? BLACK : WHITE;
+                int kingIndex = __builtin_ctzll(gameState.state.pieces[defenderSide][KING]);
+                if (isSquareAttacked(gameState.state, kingIndex, attackerSide)) {
+                    gameHistory.winner = attackerSide;
+                }
+                else {
+                    gameHistory.winner = DRAW;
+                }
 
-				gameHistoryToFile(gameHistory, "data/game_history.txt");
+                gameHistoryToFile(gameHistory, "data/game_history.txt");
 
-				if (--gamesToPlay == 0) {
-					gameState.gameOver = true;
-					lk.unlock();
-					gameState.mutexCondition.notify_all();
-					break;
-				}
-				else {
-					//Reset gameState and gameHistory
-					std::string fen = getRandomFen(gameHistory.fenDBFilePath);
-					std::cerr << "setting fen to: "<<fen<<std::endl;
-					gameState.timeUp = false;
-					long int whiteTotalTime = gameState.whiteTime;
-					gameState.whiteTime = whiteTotalTime; 
-					long int blackTotalTime = gameState.blackTotalTime;
-					gameState.blackTime = blackTotalTime;
-					fenToBoardState(fen, gameState.state);
-					gameState.turnState = gameState.state.sideToMove;
-					gameHistory.moveIndex = 0;
-					gameHistory.startFen = fen;
+                if (--gamesToPlay == 0) {
+                    gameState.gameOver = true;
+                    lk.unlock();
+                    gameState.mutexCondition.notify_all();
+                    break;
+                }
+                else {
+                    //Reset gameState and gameHistory
+                    std::string fen = getRandomFen(gameHistory.fenDBFilePath);
+                    std::cerr << "setting fen to: "<<fen<<std::endl;
+                    gameState.timeUp = false;
+                    long int whiteTotalTime = gameState.whiteTime;
+                    gameState.whiteTime = whiteTotalTime; 
+                    long int blackTotalTime = gameState.blackTotalTime;
+                    gameState.blackTime = blackTotalTime;
+                    fenToBoardState(fen, gameState.state);
+                    gameState.turnState = gameState.state.sideToMove;
+                    gameHistory.moveIndex = 0;
+                    gameHistory.startFen = fen;
 				}
             }
 			timeBeforeMove = std::chrono::steady_clock::now();
