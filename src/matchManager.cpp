@@ -1,15 +1,5 @@
 #include "matchManager.hpp"
 
-/*
-//Moved to netUtils
-///Private function signatures intended only for use in current file
-void validateSend(int sendRetVal, int expectedByteCount);
-*/
-///end private signatures
-
-//std::mutex m; //refactored the globals out
-//std::condition_variable cv;
-
 int main(int argc, char **argv) {
     struct GameState gameState = {
         .gameOver = false,
@@ -36,7 +26,8 @@ int main(int argc, char **argv) {
             fen = std::string(argv[i+1]);
             int j = i + 2;
             //Finds new arg or reaches the end
-            //Fens can have dashes so we need a better way of dealing with this when we add new args
+            //TODO Fens can have dashes so we need a better way
+			//of dealing with this when we add new args
             while (
                 std::string(argv[j]).find("-wt") == std::string::npos &&
                 std::string(argv[j]).find("-bt") == std::string::npos &&
@@ -58,7 +49,7 @@ int main(int argc, char **argv) {
 
     std::cerr << "fen: " << fen << std::endl;
 
-    //Match Manager needs to be a source of true for moves
+    //Match Manager needs to be a source of truth for moves
     generateKingAttacks();
     generateKnightAttacks();
 
@@ -142,16 +133,8 @@ int main(int argc, char **argv) {
 		userMatchManagerThread.join();
 		engineOneThread.join();
 		engineTwoThread.join();
-		/*if(userCLIThread.joinable()){
-			userCLIThread.join();
-		}*/
 	} while (--gamesToPlay != 0);
-    //I think it's fine to join now, UCIThread can't block infinitely anymore.
-    //It was actually the engine threads blocking.
-    //~~Since UCI thread can block forever on std::in we can't ensure that it will be joinable
-    //~~Let the OS handle it
     userCLIThread.detach();
-
 }
 
 void engineThread(
@@ -167,12 +150,23 @@ void engineThread(
     }
     struct sockaddr_in listenAddressOne = {
         .sin_family = AF_INET,
-        .sin_port = htons(ENGINE_LISTEN_PORT[color]), //Color *must* be 0 or 1 (white, black)
+		//Color *must* be 0 or 1 (white, black) 
+        .sin_port = htons(ENGINE_LISTEN_PORT[color]),
         .sin_addr = {.s_addr = INADDR_ANY} //(man 7 ip)
     };
     const int reuse = 1;
-    setsockopt(sockDesc, SOL_SOCKET, SO_REUSEADDR, (void *) &reuse, sizeof(reuse));
-    int res = bind(sockDesc, (const struct sockaddr *)&listenAddressOne, sizeof(listenAddressOne));
+    setsockopt(
+		sockDesc,
+		SOL_SOCKET,
+		SO_REUSEADDR,
+		(void *) &reuse,
+		sizeof(reuse)
+	);
+    int res = bind(
+		sockDesc,
+		(const struct sockaddr *)&listenAddressOne,
+		sizeof(listenAddressOne)
+	);
     if (res == -1) {
         std::cerr << "matchManager - Failed to bind socket. Errno=" << errno << std::endl;
         return;
@@ -181,15 +175,16 @@ void engineThread(
     const int connectionBacklogLimit = 1;
     listen(sockDesc, connectionBacklogLimit);
     struct sockaddr_in clientConnInfo; //filled in with call to accept()
-    socklen_t connSizeInfo = sizeof(clientConnInfo); //will be overwritten by accept()
-    //At some point we probably want to make this a non-blocking loop
-    //because we want to be able to abort without waiting for engines to connect
-    //-- To abort, we should probably be checking against some abort flag in the do-while, no?
-    //I'll leave the choice of how to go about that undecided for now.
-    int clientDesc = -1;
-    do {
+	// \/ will be overwritten by accept()
+    socklen_t connSizeInfo = sizeof(clientConnInfo); 
+	int clientDesc = -1;
+	do {
         if (gameState.gameOver) { return; }
-        clientDesc = accept(sockDesc, (struct sockaddr *) &clientConnInfo, &connSizeInfo);
+        clientDesc = accept(
+			sockDesc,
+			(struct sockaddr *) &clientConnInfo,
+			&connSizeInfo
+		);
         if (clientDesc == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 continue;
@@ -210,22 +205,15 @@ void engineThread(
         gameState.blackReady = true;
     }
     gameState.mutexCondition.notify_all();
-    //Could output the contents of clientConnInfo for logging / connection debug
     std::cerr << "matchManager - Client successfully connected: "
         << ntohs(clientConnInfo.sin_addr.s_addr)
         << ":" << ntohs(clientConnInfo.sin_port) << std::endl;
     
-    //std::cerr << "wready = " << gameState.whiteReady << " bready = " << gameState.blackReady << std::endl;
     clientConnection.netSend("uci\n");
-    //std::string cmd = "uci\n";
-    //send(clientDesc, cmd.c_str(), cmd.length(), 0);
-    //char buf[PACKET_STR_SIZE]; 
     int netStatus;
     std::string cppBuf;
     do {
-        //res = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
-        //buf[PACKET_STR_SIZE - 1] = '\0';
-        cppBuf = clientConnection.netGetLine(0, netStatus);
+        cppBuf = clientConnection.netGetLine(0, std::ref(netStatus));
         if(netStatus == 0){
             std::cerr << "Engine disconnected during UCI handshake" << std::endl;
             clientConnection.netClose();
@@ -242,7 +230,6 @@ void engineThread(
     } while (cppBuf.find("id name") == std::string::npos);
     std::cerr << "{{{ " << cppBuf << " }}}" << std::endl << std::endl;
     if (netStatus > 0) {
-        //cppBuf = std::string(buf);
         std::istringstream ss(cppBuf);
         std::string token;
         while (ss >> token) {
@@ -262,7 +249,6 @@ void engineThread(
         std::cerr << "Failed to get info after uci command sent" << std::endl;
     }
 
-
     if (color == WHITE) {
         std::cerr << "white's name = " << gameHistory.whiteName << std::endl;
     }
@@ -270,17 +256,18 @@ void engineThread(
         std::cerr << "black's name = " << gameHistory.blackName << std::endl;
     }
 
-    //cmd = "isready\n";
-    //send(clientDesc, cmd.c_str(), cmd.length(), 0);
     clientConnection.netSend("isready\n");
 
     //draining all data from pending recv queue
     //Checking for readyok
     do { 
-        //char buf[PACKET_STR_SIZE]; 
         cppBuf = clientConnection.netGetLine(0, netStatus);
-        //const int res = recv(clientDesc, buf, PACKET_STR_SIZE, MSG_DONTWAIT);
-        //if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) { break; }
+		if (netStatus == 0 || netStatus == -1) {
+			std::cerr << "Failed while waiting for readyok" << std::endl;
+			clientConnection.netClose();
+			close(sockDesc);
+			return;
+		}
     } while(cppBuf.find("readyok") == std::string::npos);
 
     while (true) {
@@ -291,15 +278,10 @@ void engineThread(
         std::cerr << "matchManager engine thread woken up, color=" << color << std::endl;
         lk.unlock(); //This allows main thread to continue to act
         if(gameState.gameOver){
-            //char buf[] = "bye";
-            //send(clientDesc, (void *) buf, sizeof(buf), MSG_DONTWAIT);
-            /*if (close(clientDesc) != 0) {
-				std::cerr << "Failed to close socket in match manager. errno=" << errno << std::endl;
-			}*/
             clientConnection.netSend("bye");
             clientConnection.netClose();
             close(sockDesc);
-            break;
+			return;
         }
 
         std::string cmd;
@@ -309,21 +291,14 @@ void engineThread(
         assert(cmd.length() <= PACKET_STR_SIZE); //Need some form of bounds checking
             //better to crash than error silently
 
-        //std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE);
-        //buf[PACKET_STR_SIZE - 1] = '\0';
         //send Position command
         std::cerr << "matchManager DEBUG: transmitting {" << cmd << "}" << std::endl;
-        //int bytesSent = send(clientDesc, (void *) buf, cmd.length(), MSG_MORE);
         clientConnection.netSend(cmd);
-        //validateSend(bytesSent, cmd.length());
         
         cmd = "go wtime " + std::to_string(gameState.whiteTime) + " btime " + std::to_string(gameState.blackTime) + "\n";
-        //std::strncpy(buf, cmd.c_str(), PACKET_STR_SIZE); 
-        //buf[PACKET_STR_SIZE - 1] = '\0';
         //send Go command
         std::cerr << "matchManager DEBUG2: transmitting {" << cmd << "}" << std::endl;
         clientConnection.netSend(cmd);
-        //validateSend(bytesSent, cmd.length());
         //await engine response
         //int bytesRead;
         std::string response = "";
@@ -334,37 +309,34 @@ void engineThread(
             //clientConnection.netRecv(MSG_DONTWAIT);
             //empty the queue until we find bestmove
             response = clientConnection.netGetLine(MSG_DONTWAIT, netStatus);
-
-            if(netStatus == 0){
+            if (netStatus == -1 && (errno != EWOULDBLOCK && errno != EAGAIN)) {
+				std::cerr << "Error in mid-game, errno=" << errno << std::endl;
+				clientConnection.netClose();
+				close(sockDesc);
+				return;
+			}
+            else if(netStatus == 0){
                 std::cerr << "Engine disconnected mid-game" << std::endl;
                 clientConnection.netClose();
+				close(sockDesc);
                 return;
             }
 
             if(response.find("bestmove") != std::string::npos){
                 break;
             }
-            /*if(bytesRead > 0){
-                accumulatedResponse += buf;
-            }*/
-            //if (bytesRead == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
             if (gameState.gameOver) {
-                //char buf[] = "bye";
-                //const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
                 const int res = clientConnection.netSend("bye\n");
                 std::cerr << "res = " << res << std::endl;
-                //close(clientDesc); //this technically has a return value
-                    //to indicate failure, but it's dumb
                 clientConnection.netClose();
                 close(sockDesc);
                 return;
             }
             else if (gameState.timeUp) {
-                //char buf[] = "stop\n";
-                //const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
                 const int res = clientConnection.netSend("stop\n");
                 if (res == -1) {
                     std::cerr << "Failed to send time up signal" << std::endl;
+					//TODO - diagnose reason for failed send, handle.
                 }
                 gameState.timeUp = false;
                 continue;
@@ -372,36 +344,21 @@ void engineThread(
             if(response.length() == 0){
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
-            //}
             //TODO -- can later parse the other info the engines send in here
             //such as what the engine thought of a certain position, etc
-        } //while (accumulatedResponse.find("bestmove") == std::string::npos && !gameState.gameOver);
-        /*if(bytesRead == 0){
-            std::cerr << "bytesRead was zero in matchManager" << std::endl;
-            close(clientDesc);
-			close(sockDesc);
-            return;
-        } else if (bytesRead == -1) {
-            std::cerr << "matchManager recv call failed with errno=" << errno << std::endl;
-            close(clientDesc);
-			close(sockDesc);
-            return;
-        }*/
-        //ensure std::string cast wont pickup garbage
-        //buf[bytesRead] = '\0';
+        }
+
         std::cerr << response << std::endl;
         lk.lock(); //This ensure that it is safe to write to the global UCIResponse
                    //Would it make sense to just make UCIResponse non-global, and passed
                    //as an atomic value to the threads that need to access it?
         //send received move to main thread
-        //UCIResponse = std::string(buf);
         UCIResponse = response;
         std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
         lk.unlock();
         gameState.mutexCondition.notify_all();
     }
-	//close(clientDesc);
     clientConnection.netClose();
 	close(sockDesc);
     return;
@@ -533,19 +490,3 @@ void gameHistoryToFile(struct GameHistory& history, const std::string filename) 
 	file << std::endl << std::endl << "=================================================================================================" << std::endl << std::endl;
 	file.close();
 }
-/*
-//Moved to netUtils
-///intended for match manager internal use only
-void validateSend(int sendRetVal, int expectedByteCount) {
-    if (sendRetVal == -1) {
-        std::cerr << "DEBUG ERROR: matchManager - failed to send cmd string. errno="
-            << errno << std::endl;
-        return;
-        //TODO - probably should have some sort of error function that shuts down
-        //all the components of the program cleanly, and can be called from anywhere.
-    } else if (sendRetVal != expectedByteCount) {
-        std::cerr << "DEBUG INFO: matchManager - socket bytes sent isn't expected value"
-            << "continuing execution..." << std::endl;
-    } else { }
-}
-*/
