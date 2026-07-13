@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
 		.whiteTotalTime = 60*5*1000
     };
     std::string fen = STARTFEN;
+	std::string fenDB = "data/fenList.txt";
 	unsigned int gamesToPlay = 1;
     for (int i = 0; i < argc; ++i) {
         std::string s = std::string(argv[i]);
@@ -26,6 +27,9 @@ int main(int argc, char **argv) {
 		else if (s == "--benchmark") {
 			gamesToPlay = std::atoi(argv[i+1]);
 		}
+		else if (s == "-fdb") { // "Fen DataBase"
+			fenDB = std::string(argv[i+1]);
+		}
         else if (s == "-f") {
             fen = std::string(argv[i+1]);
             int j = i + 2;
@@ -35,6 +39,7 @@ int main(int argc, char **argv) {
             while (
                 std::string(argv[j]).find("-wt") == std::string::npos &&
                 std::string(argv[j]).find("-bt") == std::string::npos &&
+                std::string(argv[j]).find("-fdb") == std::string::npos &&
                 std::string(argv[j]).find("--benchmark") == std::string::npos &&
                 j < argc
             ) {
@@ -47,6 +52,7 @@ int main(int argc, char **argv) {
     struct GameHistory gameHistory = {
         .moveIndex = 0,
         .startFen = fen,
+		.fenDBFilePath = fenDB,
     };
 
     std::cerr << "fen: " << fen << std::endl;
@@ -456,8 +462,7 @@ void matchManagerThread(
 				}
 				else {
 					//Reset gameState and gameHistory
-					//TODO - have the hardcoded filename be optionally passed in
-					std::string fen = getRandomFen("data/fenList.txt");
+					std::string fen = getRandomFen(gameHistory.fenDBFilePath);
 					std::cerr << "setting fen to: "<<fen<<std::endl;
 					gameState.timeUp = false;
 					long int whiteTotalTime = gameState.whiteTime;

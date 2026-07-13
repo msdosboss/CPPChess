@@ -46,6 +46,7 @@ struct GameHistory {
     std::string moveFens[512];
     struct UndoState undoStates[512];
     Move moves[512]; //Sensible default for a max-length game
+	std::string fenDBFilePath;
 };
 
 void engineThread(
