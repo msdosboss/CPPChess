@@ -7,16 +7,20 @@ int main(int argc, char **argv) {
         .blackReady = false,
         .timeUp = false,
         .blackTime = 60*5*1000,
-        .whiteTime = 60*5*1000 //default time in ms: 5 minutes
+        .whiteTime = 60*5*1000, //default time in ms: 5 minutes
+		.blackTotalTime = 60*5*1000,
+		.whiteTotalTime = 60*5*1000
     };
     std::string fen = STARTFEN;
 	unsigned int gamesToPlay = 1;
     for (int i = 0; i < argc; ++i) {
         std::string s = std::string(argv[i]);
         if (s == "-wt") {
+    		gameState.whiteTotalTime = std::atoi(argv[i+1]);
             gameState.whiteTime = std::atoi(argv[i+1]);
         } 
         else if (s == "-bt") {
+    		gameState.blackTotalTime = std::atoi(argv[i+1]);
             gameState.blackTime = std::atoi(argv[i+1]);
         } 
 		else if (s == "--benchmark") {
@@ -40,8 +44,6 @@ int main(int argc, char **argv) {
             }
         } 
     }
-    std::time_t blackTime = gameState.blackTime;
-    std::time_t whiteTime = gameState.whiteTime;
     struct GameHistory gameHistory = {
         .moveIndex = 0,
         .startFen = fen,
@@ -75,22 +77,12 @@ int main(int argc, char **argv) {
 		std::ref(gameState.mutexCondition)        
 	);
 
-	//Reset gameState and gameHistory
-	gameState.gameOver = false;
-	gameState.whiteReady = false;
-	gameState.blackReady = false;
-	gameState.timeUp = false;
-	gameState.whiteTime = whiteTime;
-	gameState.blackTime = blackTime;
-	fenToBoardState(fen, gameState.state);
-	gameState.turnState = gameState.state.sideToMove;
-	gameHistory.moveIndex = 0;
-	gameHistory.startFen = fen;
 
 	userMatchManagerThread = std::thread(
 		matchManagerThread,
 		std::ref(gameState),
 		std::ref(gameHistory),
+		gamesToPlay,
 		std::ref(responseReady),
 		std::ref(UCIResponse)
 	);
@@ -387,6 +379,7 @@ void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned 
 void matchManagerThread(
     struct GameState& gameState,
     struct GameHistory& gameHistory,
+	int gamesToPlay,
     bool& responseReady,
     std::string& UCIResponse
 ){
@@ -453,11 +446,29 @@ void matchManagerThread(
 					gameHistory.winner = DRAW;
 				}
 
-                gameState.gameOver = true;
 				gameHistoryToFile(gameHistory, "data/game_history.txt");
-                lk.unlock();
-                gameState.mutexCondition.notify_all();
-                break;
+
+				if (--gamesToPlay == 0) {
+					gameState.gameOver = true;
+					lk.unlock();
+					gameState.mutexCondition.notify_all();
+					break;
+				}
+				else {
+					//Reset gameState and gameHistory
+					//TODO - have the hardcoded filename be optionally passed in
+					std::string fen = getRandomFen("data/fenList.txt");
+					std::cerr << "setting fen to: "<<fen<<std::endl;
+					gameState.timeUp = false;
+					long int whiteTotalTime = gameState.whiteTime;
+					gameState.whiteTime = whiteTotalTime; 
+					long int blackTotalTime = gameState.blackTotalTime;
+					gameState.blackTime = blackTotalTime;
+					fenToBoardState(fen, gameState.state);
+					gameState.turnState = gameState.state.sideToMove;
+					gameHistory.moveIndex = 0;
+					gameHistory.startFen = fen;
+				}
             }
 			timeBeforeMove = std::chrono::steady_clock::now();
             lk.unlock();

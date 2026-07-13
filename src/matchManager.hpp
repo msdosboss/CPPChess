@@ -28,6 +28,8 @@ struct GameState {
     std::atomic<int> turnState;
     std::atomic<std::time_t> blackTime; //In milliseconds
     std::atomic<std::time_t> whiteTime;
+    std::atomic<std::time_t> blackTotalTime; //In milliseconds
+    std::atomic<std::time_t> whiteTotalTime;
     std::mutex threadSyncMutex;
     std::condition_variable mutexCondition;
     BoardState state;
@@ -56,6 +58,7 @@ void engineThread(
 void matchManagerThread(
     struct GameState& gameState,
     struct GameHistory& gameHistory,
+	int gamesToPlay,
     bool& responseReady,
     std::string& UCIResponse
 );
