@@ -28,13 +28,13 @@ objects/matchManager.o: src/matchManager.cpp
 	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o objects/matchManager.o src/matchManager.cpp
 
 humanClient: objects/humanClient.o objects/netClient.o objects/physics.o objects/gui.o objects/openBook.o
-	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -o build/humanClient objects/netClient.o objects/humanClient.o objects/physics.o objects/gui.o objects/openBook.o
+	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -o build/humanClient objects/netClient.o objects/humanClient.o objects/physics.o objects/gui.o objects/openBook.o objects/netUtils.o
 
 objects/humanClient.o: src/humanClient.cpp
 	$(CXX) $(CXXFLAGS) $(SDL_FLAGS) -c -o  objects/humanClient.o src/humanClient.cpp
 
-engineClient: objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o
-	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/engineClient objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o
+engineClient: objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o objects/netUtils.o
+	$(CXX) $(CXXFlags) $(SDL_FLAGS) -o build/engineClient objects/netClient.o objects/engineProcess.o objects/engineClient.o objects/physics.o objects/openBook.o objects/netUtils.o
 
 objects/engineClient.o: src/engineClient.cpp
 	$(CXX) $(CXXFlags) $(SDL_FLAGS) -c -o objects/engineClient.o src/engineClient.cpp

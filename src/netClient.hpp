@@ -3,6 +3,7 @@
 
 #include "UCIClient.hpp"
 #include "physics.hpp"
+#include "netUtils.hpp"
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -14,11 +15,10 @@
 #include <condition_variable>
 #include <sstream>
 
-#define PACKET_STR_SIZE 128
 struct Packet {
     char str[PACKET_STR_SIZE];
 };
-void serverListener(const int socketFD, std::atomic<bool>& recvFlag, struct Packet& recvPacket, std::mutex& m);
+void serverListener(NetConnection clientCon, std::atomic<bool>& recvFlag, struct Packet& recvPacket, std::mutex& m);
 
 void humanServerListener(
     const int socketFD,

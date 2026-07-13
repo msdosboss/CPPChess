@@ -234,7 +234,7 @@ void engineThread(
         }
     } while (cppBuf.find("id name") == std::string::npos);
     std::cerr << "{{{ " << cppBuf << " }}}" << std::endl << std::endl;
-    if (res > 0) {
+    if (netStatus > 0) {
         //cppBuf = std::string(buf);
         std::istringstream ss(cppBuf);
         std::string token;

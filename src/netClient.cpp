@@ -96,29 +96,34 @@
 }*/
 
 void serverListener(
-    const int socketFD,
+    NetConnection clientCon,
     std::atomic<bool>& recvFlag,
     struct Packet& recvPacket,
     std::mutex& m
 ) {
     try {
+        int netStatus;
+        std::string response;
         while (true) {
-            char buf[PACKET_STR_SIZE] = {0};
-            int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
-            if (bytesRead <= 0) {
+            //char buf[PACKET_STR_SIZE] = {0};
+            //int bytesRead = recv(socketFD, (void *) buf, PACKET_STR_SIZE - 1, 0);
+            response = clientCon.netGetLine(0, netStatus); 
+            if (netStatus <= 0) {
                 //Server disconnected or error occurred
                 std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
-                if (bytesRead == -1)
+                if (netStatus == -1)
                     std::cerr << "errno=" << errno << std::endl;
                 break;
             }
-            buf[bytesRead] = '\0';
-            std::cout << "recv loaded " << std::string(buf) << std::endl;
-            std::cout << "bytesRead = " << bytesRead << std::endl;
+            //buf[bytesRead] = '\0';
+            std::cout << "recv loaded " << response << std::endl;
+            //std::cout << "bytesRead = " << bytesRead << std::endl;
             std::unique_lock lk(m);
             recvFlag = true;
             //lk.lock();
-            std::strncpy(recvPacket.str, buf, bytesRead + 1);
+            std::strncpy(recvPacket.str, response.c_str(), response.length());
+            //Could cause a crash if the response is longer than buffer
+            recvPacket.str[response.length()] = '\0';
 
             if (std::string(recvPacket.str) == "bye") {
                 lk.unlock();

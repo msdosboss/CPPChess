@@ -77,9 +77,10 @@ int main(int argc, char **argv)
 				break;
 			}
 		}
+        NetConnection clientCon(sockDesc);
 		std::thread serverThread(
 			serverListener,
-			sockDesc,
+			clientCon,
 			std::ref(recvFlag),
 			std::ref(recvPacket),
 			std::ref(threadMutex)
@@ -95,11 +96,13 @@ int main(int argc, char **argv)
 				//sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
 				std::cerr << "Sending engine response of {{ " << engineResponse << " }}\n";
 				engineResponse += "\n";
-				send(sockDesc, (void *) engineResponse.c_str(), engineResponse.length(), 0); //BLOCKING
+				//send(sockDesc, (void *) engineResponse.c_str(), engineResponse.length(), 0); //BLOCKING
+                clientCon.netSend(engineResponse);
 			}
 			if (std::string(recvPacket.str) == "bye") {
 				std::cerr << "exiting: received shutdown command" << std::endl;
-				close(sockDesc);
+				//close(sockDesc);
+                clientCon.netClose();
 				break;
 			}
 			if (recvFlag) {
