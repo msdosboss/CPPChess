@@ -220,12 +220,18 @@ void engineThread(
     //std::string cmd = "uci\n";
     //send(clientDesc, cmd.c_str(), cmd.length(), 0);
     //char buf[PACKET_STR_SIZE]; 
+    int netStatus;
     std::string cppBuf;
     do {
         //res = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
         //buf[PACKET_STR_SIZE - 1] = '\0';
-        res = clientConnection.netRecv(0);
-        cppBuf = clientConnection.netDequeue();
+        cppBuf = clientConnection.netGetLine(0, netStatus);
+        if(netStatus == 0){
+            std::cerr << "Engine disconnected during UCI handshake" << std::endl;
+            clientConnection.netClose();
+            close(sockDesc);
+            return;
+        }
     } while (cppBuf.find("id name") == std::string::npos);
     std::cerr << "{{{ " << cppBuf << " }}}" << std::endl << std::endl;
     if (res > 0) {
@@ -263,14 +269,12 @@ void engineThread(
 
     //draining all data from pending recv queue
     //Checking for readyok
-    std::string token;
     do { 
         //char buf[PACKET_STR_SIZE]; 
-        clientConnection.netRecv(MSG_DONTWAIT);
-        token = clientConnection.netDequeue();
+        cppBuf = clientConnection.netGetLine(0, netStatus);
         //const int res = recv(clientDesc, buf, PACKET_STR_SIZE, MSG_DONTWAIT);
         //if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) { break; }
-    } while(token.find("readyok") == std::string::npos);
+    } while(cppBuf.find("readyok") == std::string::npos);
 
     while (true) {
         std::unique_lock lk(gameState.threadSyncMutex);
@@ -320,11 +324,16 @@ void engineThread(
         while(1) {
             //std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
             //bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
-            clientConnection.netRecv(MSG_DONTWAIT);
+            //clientConnection.netRecv(MSG_DONTWAIT);
             //empty the queue until we find bestmove
-            do{
-                response = clientConnection.netDequeue();
-            } while(response != "" && response.find("bestmove") == std::string::npos);
+            response = clientConnection.netGetLine(MSG_DONTWAIT, netStatus);
+
+            if(netStatus == 0){
+                std::cerr << "Engine disconnected mid-game" << std::endl;
+                clientConnection.netClose();
+                return;
+            }
+
             if(response.find("bestmove") != std::string::npos){
                 break;
             }
@@ -353,7 +362,9 @@ void engineThread(
                 gameState.timeUp = false;
                 continue;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            if(response.length() == 0){
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
             //}
             //TODO -- can later parse the other info the engines send in here
             //such as what the engine thought of a certain position, etc

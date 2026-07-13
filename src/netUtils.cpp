@@ -49,6 +49,20 @@ std::string NetConnection::netDequeue(){
     return response;
 }
 
+std::string NetConnection::netGetLine(int flags, int& status){
+    //Default to ok
+    status = 1;
+
+    if(recvQueue.empty()){
+        status = netRecv(flags);
+        if(status <= 0){
+            return "";
+        }
+    }
+
+    return netDequeue();
+}
+
 void NetConnection::unsetBlocking(){
     int flags = fcntl(sockfd, F_GETFL);
     flags |= O_NONBLOCK;

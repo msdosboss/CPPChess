@@ -19,10 +19,11 @@ class NetConnection{
         std::string accumulatedResponse;
     public:
         NetConnection(int sock);
-        int netRecv(int flag);
+        int netRecv(int flags);
         int netSend(std::string msg);
         int netClose();
         std::string netDequeue();
+        std::string netGetLine(int flags, int& status);
         void setBlocking();
         void unsetBlocking();
 };
