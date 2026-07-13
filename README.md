@@ -4,11 +4,8 @@ TODO (No particular order)
 use SPRT to prove engine improvement with a given change to logic.
 Killer move heuristic
 multi-thread search
-Refactor all the giant functions to be smaller.
-Match-manager record result results
-    create a game history struct (contains moves and players and maybe other stuff)
-    record the win loss of each client
-    convert games played to pgn
+
+convert games played to pgn
 
 Small stuff
 

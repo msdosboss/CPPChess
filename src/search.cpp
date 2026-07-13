@@ -106,10 +106,6 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
     return bestMove;
 }
 
-const uint8_t FLAG_EXACT = 0;
-const uint8_t FLAG_ALPHA = 1; // Upperbound
-const uint8_t FLAG_BETA = 2;  // Lowerbound
-
 int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo){
     searchInfo.nodesSearched++;
     if((searchInfo.nodesSearched & 2047) == 0){

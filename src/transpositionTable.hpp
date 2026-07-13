@@ -29,6 +29,10 @@ class TranspositionTable{
         bool probe(uint64_t hash, TTEntry& returnEntry);
 };
 
+#define FLAG_EXACT 0
+#define FLAG_ALPHA 1 // Upperbound
+#define FLAG_BETA 2 // Lowerbound
+							  //
 inline TranspositionTable TT;
 
 #endif
