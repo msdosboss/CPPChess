@@ -3,7 +3,7 @@
 void serverListener(
     NetConnection clientCon,
     std::atomic<bool>& recvFlag,
-    struct Packet& recvPacket,
+	std::string& recvStr,
     std::mutex& m
 ) {
     try {
@@ -21,11 +21,9 @@ void serverListener(
             std::cout << "recv loaded " << response << std::endl;
             std::unique_lock lk(m);
             recvFlag = true;
-            std::strncpy(recvPacket.str, response.c_str(), response.length());
-            //Could cause a crash if the response is longer than buffer //TODO - remove struct Packet, just use std::string
-            recvPacket.str[response.length()] = '\0';
+			recvStr = response;
 
-            if (std::string(recvPacket.str) == "bye") {
+            if (recvStr.find("bye") != std::string::npos) {
                 lk.unlock();
                 break;
             }
@@ -38,7 +36,7 @@ void serverListener(
 }
 
 void humanServerListener(
-    const int socketFD,
+	NetConnection clientCon,
     BoardState& boardState,
     std::atomic<bool>& guiNeedsToMove,
     std::atomic<bool>& gameOver,
@@ -46,18 +44,16 @@ void humanServerListener(
     std::condition_variable& cv 
 ){
     while(!gameOver){
-        char buf[PACKET_STR_SIZE];
-        int bytesRead = recv(socketFD, (void *)buf, PACKET_STR_SIZE - 1, 0);
-        if (bytesRead <= 0) {
+		int netStatus;
+		std::string response = clientCon.netGetLine(0, netStatus);
+        if (netStatus <= 0) {
             //Server disconnected or error occurred
             std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
             gameOver = true;
-            if (bytesRead == -1)
+            if (netStatus == -1)
                 std::cerr << "errno=" << errno << std::endl;
             break;
         }
-        buf[bytesRead] = '\0';
-        std::string response = std::string(buf);
         if(response.find("position") != std::string::npos){
             std::unique_lock lk(m);
             applyPositionCommand(response, boardState);
@@ -76,7 +72,7 @@ void humanServerListener(
 }
 
 void humanSender(
-    const int socketFD,
+	NetConnection clientCon,
     std::string& moveMadeStr,
     std::atomic<bool>& guiNeedsToMove,
     std::atomic<bool>& gameOver,
@@ -95,7 +91,7 @@ void humanSender(
         }
         std::string UCIMove = "bestmove " + moveMadeStr + "\n";
         std::cerr << "Human played: " + UCIMove;
-        send(socketFD, UCIMove.c_str(), UCIMove.length(), 0);
+		clientCon.netSend(UCIMove);
 
         moveMadeStr = "";
         guiNeedsToMove = false;

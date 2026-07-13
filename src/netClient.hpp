@@ -15,13 +15,15 @@
 #include <condition_variable>
 #include <sstream>
 
-struct Packet {
-    char str[PACKET_STR_SIZE];
-};
-void serverListener(NetConnection clientCon, std::atomic<bool>& recvFlag, struct Packet& recvPacket, std::mutex& m);
+void serverListener(
+	NetConnection clientCon,
+	std::atomic<bool>& recvFlag,
+	std::string& recvStr,
+	std::mutex& m
+);
 
 void humanServerListener(
-    const int socketFD,
+	NetConnection clientCon,
     BoardState& boardState,
     std::atomic<bool>& guiNeedsToMove,
     std::atomic<bool>& gameOver,
@@ -29,7 +31,7 @@ void humanServerListener(
     std::condition_variable& cv 
 );
 void humanSender(
-    const int socketFD,
+	NetConnection clientCon,
     std::string& moveMadeStr,
     std::atomic<bool>& guiNeedsToMove,
     std::atomic<bool>& gameOver,

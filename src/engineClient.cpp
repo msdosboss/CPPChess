@@ -60,9 +60,9 @@ int main(int argc, char **argv)
 			return -1;
 		}*/
 
-		//threadMutex locks access to recvPacket and recvFlag
+		//threadMutex locks access to recvStr and recvFlag
 		std::mutex threadMutex;
-		Packet recvPacket;
+		std::string recvStr;
 		std::atomic<bool> recvFlag = false;
 
 
@@ -81,11 +81,10 @@ int main(int argc, char **argv)
 			serverListener,
 			clientCon,
 			std::ref(recvFlag),
-			std::ref(recvPacket),
+			std::ref(recvStr),
 			std::ref(threadMutex)
 		);
 		EngineProcess engine(pathToEngine);
-		Packet sendPacket = {0};
 
 		while (true) {
 			std::unique_lock lk(threadMutex);
@@ -95,14 +94,14 @@ int main(int argc, char **argv)
 				engineResponse += "\n";
                 clientCon.netSend(engineResponse);
 			}
-			if (std::string(recvPacket.str) == "bye") {
+			if (recvStr == "bye") {
 				std::cerr << "exiting: received shutdown command" << std::endl;
                 clientCon.netClose();
 				break;
 			}
 			if (recvFlag) {
-				std::cout << "Sending: {" << std::string(recvPacket.str) << "} to engine" << std::endl;
-				engine.sendCommand(std::string(recvPacket.str));
+				std::cout << "Sending: {" << recvStr << "} to engine" << std::endl;
+				engine.sendCommand(recvStr);
 				recvFlag = false;
 			}
 			lk.unlock();

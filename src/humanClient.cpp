@@ -54,10 +54,12 @@ int main(int argc, char **argv){
     }
     generateKingAttacks();
     generateKnightAttacks();
+	NetConnection clientCon(sockDesc);
 
-    std::string msg = "id name humanClient";
+    std::string msg = "id name humanClient\n";
     //Match Manager expects a name for the player
-    send(sockDesc, msg.c_str(), msg.length(), 0);
+	clientCon.netSend(msg);
+	clientCon.netSend("readyok\n");
 
     std::mutex threadMutex;
     std::condition_variable mutexCondition;
@@ -70,7 +72,7 @@ int main(int argc, char **argv){
 
     std::thread serverThread(
         humanServerListener,
-        sockDesc,
+		clientCon,
         std::ref(boardState),
         std::ref(guiNeedsToMove),
         std::ref(gameOver),
@@ -80,7 +82,7 @@ int main(int argc, char **argv){
 
     std::thread senderThread(
         humanSender,
-        sockDesc,
+		clientCon,
         std::ref(lastMoveStr),
         std::ref(guiNeedsToMove),
         std::ref(gameOver),
