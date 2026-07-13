@@ -232,6 +232,13 @@ void engineThread(
             close(sockDesc);
             return;
         }
+		else if(netStatus == -1) {
+			std::cerr << "Engine error during UCI handshake, errno=" << errno
+				<< std::endl;
+			clientConnection.netClose();
+			close(sockDesc);
+			return;
+		}
     } while (cppBuf.find("id name") == std::string::npos);
     std::cerr << "{{{ " << cppBuf << " }}}" << std::endl << std::endl;
     if (netStatus > 0) {
