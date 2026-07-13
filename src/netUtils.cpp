@@ -6,9 +6,9 @@ NetConnection::NetConnection(int sock){
     accumulatedResponse = std::string();
 }
 
-int NetConnection::netRecv(){
+int NetConnection::netRecv(int flags){
     char buf[PACKET_STR_SIZE];
-    int bytesRecv = recv(sockfd, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
+    int bytesRecv = recv(sockfd, buf, PACKET_STR_SIZE - 1, flags);
     if(bytesRecv > 0){
         buf[bytesRecv] = '\0';
         accumulatedResponse.append(buf, bytesRecv);

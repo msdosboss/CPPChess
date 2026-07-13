@@ -224,7 +224,7 @@ void engineThread(
     do {
         //res = recv(clientDesc, buf, PACKET_STR_SIZE - 1, 0);
         //buf[PACKET_STR_SIZE - 1] = '\0';
-        res = clientConnection.netRecv();
+        res = clientConnection.netRecv(0);
         cppBuf = clientConnection.netDequeue();
     } while (cppBuf.find("id name") == std::string::npos);
     std::cerr << "{{{ " << cppBuf << " }}}" << std::endl << std::endl;
@@ -266,7 +266,7 @@ void engineThread(
     std::string token;
     do { 
         //char buf[PACKET_STR_SIZE]; 
-        clientConnection.netRecv();
+        clientConnection.netRecv(MSG_DONTWAIT);
         token = clientConnection.netDequeue();
         //const int res = recv(clientDesc, buf, PACKET_STR_SIZE, MSG_DONTWAIT);
         //if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) { break; }
@@ -314,41 +314,51 @@ void engineThread(
         clientConnection.netSend(cmd);
         //validateSend(bytesSent, cmd.length());
         //await engine response
-        int bytesRead;
-        std::string accumulatedResponse = "";
-        char buf[PACKET_STR_SIZE] = {0};
-        do {
-            std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
-            bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
-            if(bytesRead > 0){
-                accumulatedResponse += buf;
+        //int bytesRead;
+        std::string response = "";
+        //char buf[PACKET_STR_SIZE] = {0};
+        while(1) {
+            //std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
+            //bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
+            clientConnection.netRecv(MSG_DONTWAIT);
+            //empty the queue until we find bestmove
+            do{
+                response = clientConnection.netDequeue();
+            } while(response != "" && response.find("bestmove") == std::string::npos);
+            if(response.find("bestmove") != std::string::npos){
+                break;
             }
-            if (bytesRead == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(2));
-                if (gameState.gameOver) {
-                    char buf[] = "bye";
-                    const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
-                    std::cerr << "res = " << res << std::endl;
-                    close(clientDesc); //this technically has a return value
-                        //to indicate failure, but it's dumb
-					close(sockDesc);
-                    return;
+            /*if(bytesRead > 0){
+                accumulatedResponse += buf;
+            }*/
+            //if (bytesRead == -1 && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+            if (gameState.gameOver) {
+                //char buf[] = "bye";
+                //const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
+                const int res = clientConnection.netSend("bye\n");
+                std::cerr << "res = " << res << std::endl;
+                //close(clientDesc); //this technically has a return value
+                    //to indicate failure, but it's dumb
+                clientConnection.netClose();
+                close(sockDesc);
+                return;
+            }
+            else if (gameState.timeUp) {
+                //char buf[] = "stop\n";
+                //const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
+                const int res = clientConnection.netSend("stop\n");
+                if (res == -1) {
+                    std::cerr << "Failed to send time up signal" << std::endl;
                 }
-                else if (gameState.timeUp) {
-                    char buf[] = "stop\n";
-                    const int res = send(clientDesc, (void *) buf, sizeof(buf), 0);
-                    if (res == -1) {
-                        std::cerr << "Failed to send time up signal" << std::endl;
-                    }
-                    gameState.timeUp = false;
-                    continue;
-                }
+                gameState.timeUp = false;
                 continue;
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            //}
             //TODO -- can later parse the other info the engines send in here
             //such as what the engine thought of a certain position, etc
-        } while (accumulatedResponse.find("bestmove") == std::string::npos && !gameState.gameOver);
-        if(bytesRead == 0){
+        } //while (accumulatedResponse.find("bestmove") == std::string::npos && !gameState.gameOver);
+        /*if(bytesRead == 0){
             std::cerr << "bytesRead was zero in matchManager" << std::endl;
             close(clientDesc);
 			close(sockDesc);
@@ -358,22 +368,23 @@ void engineThread(
             close(clientDesc);
 			close(sockDesc);
             return;
-        }
+        }*/
         //ensure std::string cast wont pickup garbage
         //buf[bytesRead] = '\0';
-        std::cerr << accumulatedResponse << std::endl;
+        std::cerr << response << std::endl;
         lk.lock(); //This ensure that it is safe to write to the global UCIResponse
                    //Would it make sense to just make UCIResponse non-global, and passed
                    //as an atomic value to the threads that need to access it?
         //send received move to main thread
         //UCIResponse = std::string(buf);
-        UCIResponse = accumulatedResponse;
+        UCIResponse = response;
         std::cerr << "UCIResponse from thread (color=" << color << "):" << UCIResponse << std::endl;
         responseReady = true;
         lk.unlock();
         gameState.mutexCondition.notify_all();
     }
-	close(clientDesc);
+	//close(clientDesc);
+    clientConnection.netClose();
 	close(sockDesc);
     return;
 }
