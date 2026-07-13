@@ -1,6 +1,5 @@
 #include "engineClient.hpp"
 
-
 int main(int argc, char **argv)
 {
     char *port = NULL;
@@ -55,7 +54,7 @@ int main(int argc, char **argv)
 			close(sockDesc);
 			return -1;
 		}
-		/*
+		/* Note -- Retain for socket refactor
 		if (connect(sockDesc, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == -1) {
 			std::cerr << "Failed to connect with socket." << std::endl;
 			return -1;
@@ -67,7 +66,7 @@ int main(int argc, char **argv)
 		std::atomic<bool> recvFlag = false;
 
 
-		while (true) {
+		while (true) { //TODO -- remove in socket refactor
 			if (connect(sockDesc, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == -1) {
 				if (errno == ECONNREFUSED) continue;
 				std::cerr << "Failed to connect with socket. errno=" << errno << std::endl;
@@ -92,16 +91,12 @@ int main(int argc, char **argv)
 			std::unique_lock lk(threadMutex);
 			if (engine.hasData()) {
 				std::string engineResponse = engine.receiveCommand();
-				//strncpy(sendPacket.str, engineResponse.c_str(), PACKET_STR_SIZE - 1);
-				//sendPacket.str[PACKET_STR_SIZE - 1] = '\0';
 				std::cerr << "Sending engine response of {{ " << engineResponse << " }}\n";
 				engineResponse += "\n";
-				//send(sockDesc, (void *) engineResponse.c_str(), engineResponse.length(), 0); //BLOCKING
                 clientCon.netSend(engineResponse);
 			}
 			if (std::string(recvPacket.str) == "bye") {
 				std::cerr << "exiting: received shutdown command" << std::endl;
-				//close(sockDesc);
                 clientCon.netClose();
 				break;
 			}
