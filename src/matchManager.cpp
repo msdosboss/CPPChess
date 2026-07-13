@@ -75,65 +75,63 @@ int main(int argc, char **argv) {
 		std::ref(gameState.mutexCondition)        
 	);
 
-	do {
-        //Reset gameState and gameHistory
-        gameState.gameOver = false;
-        gameState.whiteReady = false;
-        gameState.blackReady = false;
-        gameState.timeUp = false;
-        gameState.whiteTime = whiteTime;
-        gameState.blackTime = blackTime;
-        fenToBoardState(fen, gameState.state);
-        gameState.turnState = gameState.state.sideToMove;
-        gameHistory.moveIndex = 0;
-        gameHistory.startFen = fen;
+	//Reset gameState and gameHistory
+	gameState.gameOver = false;
+	gameState.whiteReady = false;
+	gameState.blackReady = false;
+	gameState.timeUp = false;
+	gameState.whiteTime = whiteTime;
+	gameState.blackTime = blackTime;
+	fenToBoardState(fen, gameState.state);
+	gameState.turnState = gameState.state.sideToMove;
+	gameHistory.moveIndex = 0;
+	gameHistory.startFen = fen;
 
-		userMatchManagerThread = std::thread(
-			matchManagerThread,
-			std::ref(gameState),
-			std::ref(gameHistory),
-			std::ref(responseReady),
-			std::ref(UCIResponse)
-		);
-		engineOneThread = std::thread(
-			engineThread,
-			std::ref(gameState),
-			std::ref(gameHistory),
-			WHITE,
-			std::ref(UCIResponse),
-			std::ref(responseReady)
-		);
-		engineTwoThread = std::thread(
-			engineThread,
-			std::ref(gameState),
-			std::ref(gameHistory),
-			BLACK,
-			std::ref(UCIResponse),
-			std::ref(responseReady)
-		);
+	userMatchManagerThread = std::thread(
+		matchManagerThread,
+		std::ref(gameState),
+		std::ref(gameHistory),
+		std::ref(responseReady),
+		std::ref(UCIResponse)
+	);
+	engineOneThread = std::thread(
+		engineThread,
+		std::ref(gameState),
+		std::ref(gameHistory),
+		WHITE,
+		std::ref(UCIResponse),
+		std::ref(responseReady)
+	);
+	engineTwoThread = std::thread(
+		engineThread,
+		std::ref(gameState),
+		std::ref(gameHistory),
+		BLACK,
+		std::ref(UCIResponse),
+		std::ref(responseReady)
+	);
 
-		//This will be unused for matchManager
-		std::string lastMoveMade;
-		renderBoard(
-			std::ref(gameState.state),
-			std::ref(gameState.gameOver),
-			darkColor,
-			lightColor,
-			"img",
-			-1,
-			std::ref(lastMoveMade),
-			std::ref(gameState.threadSyncMutex),
-			std::ref(gameState.mutexCondition) //This will be unused for matchManager
-		);
+	//This will be unused for matchManager
+	std::string lastMoveMade;
+	renderBoard(
+		std::ref(gameState.state),
+		std::ref(gameState.gameOver),
+		darkColor,
+		lightColor,
+		"img",
+		-1,
+		std::ref(lastMoveMade),
+		std::ref(gameState.threadSyncMutex),
+		std::ref(gameState.mutexCondition) //This will be unused for matchManager
+	);
 
-		//If game ends because of gui close
-		gameState.gameOver = true;
-		gameState.mutexCondition.notify_all();
+	//If game ends because of gui close
+	gameState.gameOver = true;
+	gameState.mutexCondition.notify_all();
 
-		userMatchManagerThread.join();
-		engineOneThread.join();
-		engineTwoThread.join();
-	} while (--gamesToPlay != 0);
+	userMatchManagerThread.join();
+	engineOneThread.join();
+	engineTwoThread.join();
     userCLIThread.detach();
 }
 

@@ -6,33 +6,32 @@ void serverListener(
 	std::string& recvStr,
     std::mutex& m
 ) {
-    try {
-        int netStatus;
-        std::string response;
-        while (true) {
-            response = clientCon.netGetLine(0, netStatus); 
-            if (netStatus <= 0) {
-                //Server disconnected or error occurred
-                std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
-                if (netStatus == -1)
-                    std::cerr << "errno=" << errno << std::endl;
-                break;
-            }
-            std::cout << "recv loaded " << response << std::endl;
-            std::unique_lock lk(m);
-            recvFlag = true;
-			recvStr = response;
+	int netStatus;
+	std::string response;
+	while (true) {
+		response = clientCon.netGetLine(0, netStatus); 
+		if (netStatus <= 0) {
+			//Server disconnected or error occurred
+			std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
+			if (netStatus == -1)
+				std::cerr << "errno=" << errno << std::endl;
+			clientCon.netClose();
+			std::unique_lock lk(m);
+			recvStr = "bye";
+			lk.unlock();
+			return;
+		}
+		std::cout << "recv loaded " << response << std::endl;
+		std::unique_lock lk(m);
+		recvFlag = true;
+		recvStr = response;
 
-            if (recvStr.find("bye") != std::string::npos) {
-                lk.unlock();
-                break;
-            }
-            lk.unlock();
-        }
-    } catch (std::system_error& e) {
-        std::cerr << "Blew up in serverListener" << std::endl;
-        std::exit(-1);
-    }
+		if (recvStr.find("bye") != std::string::npos) {
+			lk.unlock();
+			break;
+		}
+		lk.unlock();
+	}
 }
 
 void humanServerListener(
