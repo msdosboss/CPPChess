@@ -475,7 +475,7 @@ void matchManagerThread(
                     gameHistory.startFen = fen;
 				}
             }
-			timeBeforeMove = std::chrono::steady_clock::now();
+            timeBeforeMove = std::chrono::steady_clock::now();
             lk.unlock();
             gameState.mutexCondition.notify_all();
         }

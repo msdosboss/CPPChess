@@ -3,39 +3,39 @@
 void serverListener(
     NetConnection clientCon,
     std::atomic<bool>& recvFlag,
-	std::string& recvStr,
+    std::string& recvStr,
     std::mutex& m
 ) {
-	int netStatus;
-	std::string response;
-	while (true) {
-		response = clientCon.netGetLine(0, netStatus); 
-		if (netStatus <= 0) {
-			//Server disconnected or error occurred
-			std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
-			if (netStatus == -1)
-				std::cerr << "errno=" << errno << std::endl;
-			clientCon.netClose();
-			std::unique_lock lk(m);
-			recvStr = "bye";
-			lk.unlock();
-			return;
-		}
-		std::cout << "recv loaded " << response << std::endl;
-		std::unique_lock lk(m);
-		recvFlag = true;
-		recvStr = response;
+    int netStatus;
+    std::string response;
+    while (true) {
+        response = clientCon.netGetLine(0, netStatus); 
+        if (netStatus <= 0) {
+            //Server disconnected or error occurred
+            std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
+            if (netStatus == -1)
+                std::cerr << "errno=" << errno << std::endl;
+            clientCon.netClose();
+            std::unique_lock lk(m);
+            recvStr = "bye";
+            lk.unlock();
+            return;
+        }
+        std::cout << "recv loaded " << response << std::endl;
+        std::unique_lock lk(m);
+        recvFlag = true;
+        recvStr = response;
 
-		if (recvStr.find("bye") != std::string::npos) {
-			lk.unlock();
-			break;
-		}
-		lk.unlock();
-	}
+        if (recvStr.find("bye") != std::string::npos) {
+            lk.unlock();
+            break;
+        }
+        lk.unlock();
+    }
 }
 
 void humanServerListener(
-	NetConnection clientCon,
+    NetConnection clientCon,
     BoardState& boardState,
     std::atomic<bool>& guiNeedsToMove,
     std::atomic<bool>& gameOver,
@@ -43,8 +43,8 @@ void humanServerListener(
     std::condition_variable& cv 
 ){
     while(!gameOver){
-		int netStatus;
-		std::string response = clientCon.netGetLine(0, netStatus);
+        int netStatus;
+        std::string response = clientCon.netGetLine(0, netStatus);
         if (netStatus <= 0) {
             //Server disconnected or error occurred
             std::cerr << "serverListener breaking loop, received 0 bytes in recv()\n";
@@ -71,7 +71,7 @@ void humanServerListener(
 }
 
 void humanSender(
-	NetConnection clientCon,
+    NetConnection clientCon,
     std::string& moveMadeStr,
     std::atomic<bool>& guiNeedsToMove,
     std::atomic<bool>& gameOver,
