@@ -145,7 +145,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
         return quiescenceSearch(boardState, 5, alpha, beta, searchInfo);
     }
     MoveList legalMoves = generateLegalMoves(boardState);
-    scoreMoves(boardState, legalMoves, possibleBestMove, searchInfo, depth);
+    scoreMoves(boardState, legalMoves, possibleBestMove, searchInfo, ply);
     if(legalMoves.count == 0){
         if(boardState.sideToMove == WHITE){
             Bitboard kingbb = boardState.pieces[WHITE][KING];
@@ -218,7 +218,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
         else if (maxScore >= beta) {
             // We broke the beta limit. This is a floor.
             flag = FLAG_BETA;
-            searchInfo.killerMoveArray[depth] = bestMove;
+            searchInfo.killerMoveArray[ply] = bestMove;
         }
         else {
             // The score landed perfectly between originalAlpha and beta.
@@ -265,7 +265,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
         if (minScore <= alpha) {
             // We never improved our starting situation. This is a ceiling.
             flag = FLAG_ALPHA;
-            searchInfo.killerMoveArray[depth] = bestMove;
+            searchInfo.killerMoveArray[ply] = bestMove;
         }
         else if (minScore >= originalBeta) {
             // We broke the beta limit. This is a floor.
