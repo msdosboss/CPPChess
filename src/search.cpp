@@ -5,7 +5,7 @@ Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds 
     searchInfo.start = std::chrono::steady_clock::now();
     searchInfo.duration = duration;
     searchInfo.nodesSearched = 0;
-	searchInfo.killerMoveArray = std::vector<Move>(maxDepth + 1);
+    searchInfo.killerMoveArray = std::vector<Move>(maxDepth + 1);
 
     Move openMove;
     if(getBookMove(boardState.zobristHash, openMove)){
@@ -13,7 +13,7 @@ Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds 
     }
 
     for(int currentDepth = 1; currentDepth <= maxDepth; currentDepth++){
-        minimax(boardState, currentDepth, -INFINITESCORE, INFINITESCORE, searchInfo);
+        minimax(boardState, currentDepth, 0, -INFINITESCORE, INFINITESCORE, searchInfo);
 
         if(searchInfo.timesUp == true){
             break;
@@ -28,7 +28,7 @@ Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds 
     return topMove;
 }
 
-void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove, struct SearchInfo& searchInfo, int depth){
+void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove, struct SearchInfo& searchInfo, int ply){
     for(int i = 0; i < moveList.count; i++){
         if(moveList.moves[i].raw == bestMove.raw){
             moveList.moveScores[i] = INFINITESCORE;
@@ -47,14 +47,16 @@ void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove, struc
             }
         }*/
         if(destPieceType == -1){
-            moveList.moveScores[i] = 0;
+            if (moveList.moves[i].raw == searchInfo.killerMoveArray[ply].raw) {
+                moveList.moveScores[i] = 1;
+            }
+            else{
+                moveList.moveScores[i] = 0;
+            }
         }
         else{
             moveList.moveScores[i] = 100 + (10 * destPieceType) - sourcePieceType;
         }
-		if (moveList.moves[i].raw == searchInfo.killerMoveArray[depth].raw) {
-			moveList.moveScores[i] = 1;
-		}
     }
 }
 
@@ -73,7 +75,7 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
             UndoState undo;
             Move currentMove = legalMoves.moves[i];
             makeMove(boardState, currentMove, undo);
-            int currentMoveScore = minimax(boardState, depth - 1, alpha, beta, searchInfo);
+            int currentMoveScore = minimax(boardState, depth - 1, 1, alpha, beta, searchInfo);
             if(currentMoveScore > bestScore){
                 bestMove = currentMove;
                 bestScore = currentMoveScore;
@@ -93,7 +95,7 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
             UndoState undo;
             Move currentMove = legalMoves.moves[i];
             makeMove(boardState, currentMove, undo);
-            int currentMoveScore = minimax(boardState, depth - 1, alpha, beta, searchInfo);
+            int currentMoveScore = minimax(boardState, depth - 1, 1, alpha, beta, searchInfo);
             if(currentMoveScore < bestScore){
                 bestMove = currentMove;
                 bestScore = currentMoveScore;
@@ -110,7 +112,7 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
     return bestMove;
 }
 
-int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo){
+int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, SearchInfo& searchInfo){
     searchInfo.nodesSearched++;
     if((searchInfo.nodesSearched & 2047) == 0){
         std::chrono::steady_clock::time_point current = std::chrono::steady_clock::now();
@@ -193,7 +195,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
                 boardState.zobristHash, 
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
-            int currentMoveScore = minimax(boardState, depth - 1, alpha, beta, searchInfo);
+            int currentMoveScore = minimax(boardState, depth - 1, ply + 1, alpha, beta, searchInfo);
             if(searchInfo.timesUp == true){
                 return 0;
             }
@@ -216,7 +218,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
         else if (maxScore >= beta) {
             // We broke the beta limit. This is a floor.
             flag = FLAG_BETA;
-			searchInfo.killerMoveArray[depth] = bestMove;
+            searchInfo.killerMoveArray[depth] = bestMove;
         }
         else {
             // The score landed perfectly between originalAlpha and beta.
@@ -244,7 +246,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
                 boardState.zobristHash, 
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
-            int currentMoveScore = minimax(boardState, depth - 1, alpha, beta, searchInfo);
+            int currentMoveScore = minimax(boardState, depth - 1, ply + 1, alpha, beta, searchInfo);
             if(searchInfo.timesUp == true){
                 return 0;
             }
@@ -263,6 +265,7 @@ int minimax(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& 
         if (minScore <= alpha) {
             // We never improved our starting situation. This is a ceiling.
             flag = FLAG_ALPHA;
+            searchInfo.killerMoveArray[depth] = bestMove;
         }
         else if (minScore >= originalBeta) {
             // We broke the beta limit. This is a floor.
