@@ -1166,16 +1166,16 @@ void moveSwap(MoveList legalMoves, Move possibleBestMove){
 }
 
 std::string promotionChar(Move move){
-    if((move.flags & KNIGHTPROMO) == KNIGHTPROMO){
+    if(move.flags == KNIGHTPROMO || move.flags == KNIGHTPROMOCAPTURE){
         return "n"; 
     }
-    else if((move.flags & KNIGHTPROMO) == BISHOPPROMO){
+    else if(move.flags == BISHOPPROMO || move.flags == BISHOPPROMOCAPTURE){
         return "b"; 
     }
-    else if((move.flags & KNIGHTPROMO) == ROOKPROMO){
+    else if(move.flags == ROOKPROMO || move.flags == ROOKPROMOCAPTURE){
         return "r"; 
     }
-    else if((move.flags & KNIGHTPROMO) == QUEENPROMO){
+    else if(move.flags == QUEENPROMO || move.flags == QUEENPROMOCAPTURE){
         return "q"; 
     }
     else{
