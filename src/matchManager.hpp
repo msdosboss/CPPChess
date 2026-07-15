@@ -31,6 +31,8 @@ struct GameState {
     std::atomic<std::time_t> whiteTime;
     std::atomic<std::time_t> blackTotalTime; //In milliseconds
     std::atomic<std::time_t> whiteTotalTime;
+    std::atomic<int> baseLineEngineColor;
+    std::atomic<int> testEngineColor;
     std::mutex threadSyncMutex;
     std::condition_variable mutexCondition;
     BoardState state;
@@ -53,16 +55,24 @@ struct GameHistory {
 	std::string fenDBFilePath;
 };
 
+struct SPRTInformation{
+    int eloDiff;
+    double falsePositive;
+    double falseNegative;
+};
+
 void engineThread(
     struct GameState& gameState,
     struct GameHistory& gameHistory,
-    int color,
+    std::atomic<int>& color,
     std::string& UCIResponse,
     bool& responseReady
 );
+
 void matchManagerThread(
     struct GameState& gameState,
     struct GameHistory& gameHistory,
+    struct SPRTInformation SPRTInfo,
 	int gamesToPlay,
     bool& responseReady,
     std::string& UCIResponse

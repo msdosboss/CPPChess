@@ -9,10 +9,20 @@ int main(int argc, char **argv) {
         .blackTime = 60*5*1000,
         .whiteTime = 60*5*1000, //default time in ms: 5 minutes
 		.blackTotalTime = 60*5*1000,
-		.whiteTotalTime = 60*5*1000
+		.whiteTotalTime = 60*5*1000,
+        .baseLineEngineColor = BLACK,
+        .testEngineColor = WHITE
     };
-    std::string fen = STARTFEN;
 	std::string fenDB = "data/fenList.txt";
+    std::string fen = getRandomFen(fenDB);
+
+    //TODO These should be CL args at some point
+    struct SPRTInformation SPRTInfo = {
+        .eloDiff = 5,
+        .falsePositive = 0.05,
+        .falseNegative = 0.05
+    };
+
 	unsigned int gamesToPlay = 1;
     for (int i = 0; i < argc; ++i) {
         std::string s = std::string(argv[i]);
@@ -88,6 +98,7 @@ int main(int argc, char **argv) {
 		matchManagerThread,
 		std::ref(gameState),
 		std::ref(gameHistory),
+        SPRTInfo,
 		gamesToPlay,
 		std::ref(responseReady),
 		std::ref(UCIResponse)
@@ -96,7 +107,7 @@ int main(int argc, char **argv) {
 		engineThread,
 		std::ref(gameState),
 		std::ref(gameHistory),
-		WHITE,
+		std::ref(gameState.testEngineColor),
 		std::ref(UCIResponse),
 		std::ref(responseReady)
 	);
@@ -104,7 +115,7 @@ int main(int argc, char **argv) {
 		engineThread,
 		std::ref(gameState),
 		std::ref(gameHistory),
-		BLACK,
+		std::ref(gameState.baseLineEngineColor),
 		std::ref(UCIResponse),
 		std::ref(responseReady)
 	);
@@ -136,7 +147,7 @@ int main(int argc, char **argv) {
 void engineThread(
     struct GameState& gameState,
     struct GameHistory& gameHistory,
-    int color,
+    std::atomic<int>& color,
     std::string& UCIResponse,
     bool& responseReady
 ) {
@@ -258,17 +269,17 @@ void engineThread(
     //Checking for readyok
     do { 
         cppBuf = clientConnection.netGetLine(0, netStatus);
-		if (netStatus == 0 || netStatus == -1) {
-			std::cerr << "Failed while waiting for readyok" << std::endl;
-			clientConnection.netClose();
-			close(sockDesc);
-			return;
-		}
+        if (netStatus == 0 || netStatus == -1) {
+            std::cerr << "Failed while waiting for readyok" << std::endl;
+            clientConnection.netClose();
+            close(sockDesc);
+            return;
+        }
     } while(cppBuf.find("readyok") == std::string::npos);
 
     while (true) {
         std::unique_lock lk(gameState.threadSyncMutex);
-        gameState.mutexCondition.wait(lk, [color, &gameState, &responseReady]{ 
+        gameState.mutexCondition.wait(lk, [&color, &gameState, &responseReady]{ 
                 return (!responseReady && (color == gameState.turnState) && gameState.whiteReady && gameState.blackReady) || gameState.gameOver; 
         }); //my turn
         std::cerr << "matchManager engine thread woken up, color=" << color << std::endl;
@@ -296,13 +307,8 @@ void engineThread(
         std::cerr << "matchManager DEBUG2: transmitting {" << cmd << "}" << std::endl;
         clientConnection.netSend(cmd);
         //await engine response
-        //int bytesRead;
         std::string response = "";
-        //char buf[PACKET_STR_SIZE] = {0};
         while(1) {
-            //std::memset((void *) buf, 0, PACKET_STR_SIZE); //clearing buffer for sanity's sake
-            //bytesRead = recv(clientDesc, buf, PACKET_STR_SIZE - 1, MSG_DONTWAIT);
-            //clientConnection.netRecv(MSG_DONTWAIT);
             //empty the queue until we find bestmove
             response = clientConnection.netGetLine(MSG_DONTWAIT, netStatus);
             if (netStatus == -1 && (errno != EWOULDBLOCK && errno != EAGAIN)) {
@@ -385,12 +391,17 @@ void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned 
 void matchManagerThread(
     struct GameState& gameState,
     struct GameHistory& gameHistory,
+    struct SPRTInformation SPRTInfo,
 	int gamesToPlay,
     bool& responseReady,
     std::string& UCIResponse
 ){
 	auto timeBeforeMove = std::chrono::steady_clock::now();
 	auto timeStart = timeBeforeMove;
+    int totalWins = 0;
+    int totalDraws = 0;
+    int totalLoses = 0;
+    int testEngineColor = WHITE;
     while(true){
         std::unique_lock lk(gameState.threadSyncMutex);
         gameState.mutexCondition.wait(lk, [&gameState, &responseReady]{ return gameState.gameOver || responseReady;});
@@ -452,9 +463,51 @@ void matchManagerThread(
                     gameHistory.winner = DRAW;
                 }
 
+                if(testEngineColor == gameHistory.winner){
+                    totalWins++;
+                }
+                else if(gameHistory.winner == DRAW){
+                    totalDraws++; 
+                }
+                else{
+                    totalLoses++;
+                }
+                int SPRTResult = SPRTTest(
+                                    SPRTInfo.falsePositive,
+                                    SPRTInfo.falseNegative,
+                                    totalWins,
+                                    totalLoses,
+                                    totalDraws,
+                                    SPRTInfo.eloDiff        
+                                 ); 
+
                 gameHistoryToFile(gameHistory, "data/game_history.txt");
 
-                if (--gamesToPlay == 0) {
+                if(SPRTResult == ACCEPT){
+                    std::cerr << "SPRT Test passed." << std::endl
+                              << "Total Wins: " << totalWins << std::endl
+                              << "Total Draws: " << totalDraws << std::endl
+                              << "Total Loses: " << totalLoses << std::endl;
+                    gameState.gameOver = true;
+                    lk.unlock();
+                    gameState.mutexCondition.notify_all();
+                    break;
+                }
+                else if(SPRTResult == REJECT){
+                    std::cerr << "SPRT Failed passed." << std::endl
+                              << "Total Wins: " << totalWins << std::endl
+                              << "Total Draws: " << totalDraws << std::endl
+                              << "Total Loses: " << totalLoses << std::endl;
+                    gameState.gameOver = true;
+                    lk.unlock();
+                    gameState.mutexCondition.notify_all();
+                    break;
+                }
+                else if(--gamesToPlay == 0){
+                    std::cerr << "SPRT inconclusive reached max games." << std::endl
+                              << "Total Wins: " << totalWins << std::endl
+                              << "Total Draws: " << totalDraws << std::endl
+                              << "Total Loses: " << totalLoses << std::endl;
                     gameState.gameOver = true;
                     lk.unlock();
                     gameState.mutexCondition.notify_all();
@@ -473,6 +526,12 @@ void matchManagerThread(
                     gameState.turnState = gameState.state.sideToMove;
                     gameHistory.moveIndex = 0;
                     gameHistory.startFen = fen;
+
+                    //Atomics can't use swap :(
+                    //std::swap(gameState.baseLineEngineColor, gameState.testEngineColor);
+                    gameState.baseLineEngineColor = (gameState.baseLineEngineColor == WHITE) ? BLACK : WHITE;
+                    gameState.testEngineColor = (gameState.testEngineColor == WHITE) ? BLACK : WHITE;
+                    testEngineColor = gameState.testEngineColor;
 				}
             }
             timeBeforeMove = std::chrono::steady_clock::now();
