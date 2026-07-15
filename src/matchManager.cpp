@@ -518,7 +518,7 @@ void matchManagerThread(
                     std::string fen = getRandomFen(gameHistory.fenDBFilePath);
                     std::cerr << "setting fen to: "<<fen<<std::endl;
                     gameState.timeUp = false;
-                    long int whiteTotalTime = gameState.whiteTime;
+                    long int whiteTotalTime = gameState.whiteTotalTime;
                     gameState.whiteTime = whiteTotalTime; 
                     long int blackTotalTime = gameState.blackTotalTime;
                     gameState.blackTime = blackTotalTime;
