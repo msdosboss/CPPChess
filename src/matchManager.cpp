@@ -504,3 +504,61 @@ void gameHistoryToFile(struct GameHistory& history, const std::string filename) 
 	file << std::endl << std::endl << "=================================================================================================" << std::endl << std::endl;
 	file.close();
 }
+
+int SPRTTest(
+    double falsePositive,
+    double falseNegative,
+    int totalWins,
+    int totalLoses,
+    int totalDraws,
+    int eloDiff
+){
+    double A = std::log(falseNegative / (1 - falsePositive));
+    double B = std::log((1 - falseNegative) / falsePositive);
+    double LLR = SPRTLLR(totalWins, totalLoses, totalDraws, eloDiff);
+
+    if(LLR >= B){
+       return ACCEPT; 
+    }
+    else if(LLR <= A){
+        return REJECT;
+    }
+    else{
+        return CONTINUE;
+    }
+}
+
+double SPRTLLR(int totalWins, int totalLoses, int totalDraws, int eloDiff){
+    double baseLineExpectedSocre = SPRTExpectedScore(0);
+    double hypothesisExpectedScore = SPRTExpectedScore(eloDiff);
+    double varianceSquared = SPRTVariance(totalWins, totalLoses, totalDraws);
+    double totalGames = totalWins + totalLoses + totalDraws;
+    double totalScore = totalWins + 0.5 * totalDraws;
+    double LLR = 0.0;
+
+    if(varianceSquared != 0){
+        LLR = ((hypothesisExpectedScore - baseLineExpectedSocre) / varianceSquared) * 
+              (totalScore - totalGames * ((baseLineExpectedSocre + hypothesisExpectedScore) / 2));
+    }
+    return LLR;
+}
+
+double SPRTVariance(int totalWins, int totalLoses, int totalDraws){
+    double totalGames = totalWins + totalLoses + totalDraws;
+    double totalScore = totalWins + 0.5 * totalDraws;
+    double observedMean = totalScore / totalGames;
+
+    if(totalGames == 0){
+        return 0.0;
+    }
+
+    double varianceSquared = (totalWins * ((1 - observedMean) * (1 - observedMean)) +
+                              totalDraws * ((0.5 - observedMean) * (0.5 - observedMean)) +
+                              totalLoses * ((-observedMean) * (-observedMean))) / totalGames;
+
+    return varianceSquared;
+}
+
+double SPRTExpectedScore(int eloDiff){
+    return 1 / (1 + std::pow(10, -eloDiff / 400.0));
+}

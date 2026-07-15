@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <cmath>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
@@ -36,6 +37,9 @@ struct GameState {
 };
 
 #define DRAW 2
+#define ACCEPT 1
+#define CONTINUE 0
+#define REJECT -1
 
 struct GameHistory {
     uint8_t winner; //0 for white 1 for black 2 for draw
@@ -66,6 +70,17 @@ void matchManagerThread(
 
 void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned int& gamesToPlay, std::mutex& m, std::condition_variable& cv);
 void gameHistoryToFile(struct GameHistory& history, const std::string filename);
+double SPRTVariance(int totalWins, int totalLoses, int totalDraws);
+double SPRTExpectedScore(int eloDiff);
+double SPRTLLR(int totalWins, int totalLoses, int totalDraws, int eloDiff);
+int SPRTTest(
+    double falsePositive,
+    double falseNegative,
+    int totalWins,
+    int totalLoses,
+    int toatlDraws,
+    int eloDiff    
+);
 
 #define LISTEN_PORT_WHITE 3001
 #define LISTEN_PORT_BLACK 3002
