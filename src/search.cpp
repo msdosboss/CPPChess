@@ -25,6 +25,10 @@ Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds 
             topMove = rootEntry.bestMove;
         }
     }
+    gameHistorySearch.push(
+        boardState.zobristHash, 
+        ((topMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[topMove.source] == PAWN)
+    );
     return topMove;
 }
 
