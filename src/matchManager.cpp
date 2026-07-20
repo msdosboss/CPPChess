@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
         } 
     }
     struct GameHistory gameHistory = {
+        .winner = UNFINISHED,
         .moveIndex = 0,
         .startFen = fen,
 		.fenDBFilePath = fenDB,
@@ -89,6 +90,7 @@ int main(int argc, char **argv) {
 		std::ref(gameState.gameOver),
 		std::ref(gameState.timeUp),
 		std::ref(gamesToPlay),
+        std::ref(gameHistory),
 		std::ref(gameState.threadSyncMutex),
 		std::ref(gameState.mutexCondition)        
 	);
@@ -369,7 +371,14 @@ void engineThread(
     return;
 }
 
-void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned int& gamesToPlay, std::mutex& m, std::condition_variable& cv){
+void CLIThread(
+    std::atomic<bool>& gameOver,
+    std::atomic<bool>& timeUp,
+    unsigned int& gamesToPlay,
+    struct GameHistory& gameHistory,
+    std::mutex& m,
+    std::condition_variable& cv
+){
     while(true){
         std::string userInput;
         std::cin >> userInput;
@@ -384,6 +393,11 @@ void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned 
         }
         else if (userInput == "stop") { //tells the current engine to immediately stop thinking and send its current best move
             timeUp = true;
+        }
+        else if (userInput == "save") {
+            std::unique_lock lk(m);
+            gameHistoryToFile(gameHistory, "data/userSavedHistory.txt");
+            lk.unlock();
         }
         else{
             std::cout << "Unknown Command: " << userInput << std::endl;
@@ -455,15 +469,32 @@ void matchManagerThread(
             gameState.turnState = gameState.state.sideToMove;
             MoveList legalMoves = generateLegalMoves(gameState.state);
             //Checks if game is over
-            if(legalMoves.count == 0){
-                int defenderSide = gameState.state.sideToMove;
-                int attackerSide = (defenderSide == WHITE) ? BLACK : WHITE;
-                int kingIndex = __builtin_ctzll(gameState.state.pieces[defenderSide][KING]);
-                if (isSquareAttacked(gameState.state, kingIndex, attackerSide)) {
-                    gameHistory.winner = attackerSide;
+            if(
+                legalMoves.count == 0 ||
+                gameState.whiteTime <= 0 ||
+                gameState.blackTime <= 0 ||
+                drawByInsufficientMaterial(gameState.state) ||
+                drawByRepetition(gameHistory)
+            ){
+                if (gameState.whiteTime <= 0) {
+                    gameHistory.winner = BLACK;
+                }
+                else if (gameState.blackTime <= 0) {
+                    gameHistory.winner = WHITE;
+                }
+                else if (drawByInsufficientMaterial(gameState.state) || drawByRepetition(gameHistory)) {
+                    gameHistory.winner = DRAW;
                 }
                 else {
-                    gameHistory.winner = DRAW;
+                    int defenderSide = gameState.state.sideToMove;
+                    int attackerSide = (defenderSide == WHITE) ? BLACK : WHITE;
+                    int kingIndex = __builtin_ctzll(gameState.state.pieces[defenderSide][KING]);
+                    if (isSquareAttacked(gameState.state, kingIndex, attackerSide)) {
+                        gameHistory.winner = attackerSide;
+                    }
+                    else {
+                        gameHistory.winner = DRAW;
+                    }
                 }
 
                 if(testEngineColor == gameHistory.winner){
@@ -529,6 +560,7 @@ void matchManagerThread(
                     gameState.turnState = gameState.state.sideToMove;
                     gameHistory.moveIndex = 0;
                     gameHistory.startFen = fen;
+                    gameHistory.winner = UNFINISHED;
 
                     //Atomics can't use swap :(
                     //std::swap(gameState.baseLineEngineColor, gameState.testEngineColor);
@@ -555,6 +587,9 @@ void gameHistoryToFile(struct GameHistory& history, const std::string filename) 
 	if (history.winner == DRAW) {
 		file << "Game Result: Draw" << std::endl;
 	}
+    else if (history.winner == UNFINISHED) {
+        file << "Game Result: Undecided." << std::endl;
+    }
 	else {
 		file << "Game Result: " << ((history.winner == WHITE) ? "White" : "Black") << " wins!" << std::endl;
 	}
@@ -623,4 +658,34 @@ double SPRTVariance(int totalWins, int totalLoses, int totalDraws){
 
 double SPRTExpectedScore(int eloDiff){
     return 1 / (1 + std::pow(10, -eloDiff / 400.0));
+}
+
+bool drawByInsufficientMaterial(struct BoardState& state) {
+    if (
+        state.pieces[WHITE][ROOK] != 0 && state.pieces[BLACK][ROOK] != 0 &&
+        state.pieces[WHITE][QUEEN] != 0 && state.pieces[BLACK][QUEEN] != 0 &&
+        state.pieces[WHITE][PAWN] != 0 && state.pieces[BLACK][PAWN] != 0
+    ) {
+        return false;
+    }
+    if (__builtin_popcountll(state.pieces[WHITE][BISHOP]) > 1 && __builtin_popcountll(state.pieces[BLACK][BISHOP]) > 1) {
+        return false;
+    }
+    return true;
+}
+
+bool drawByRepetition(struct GameHistory& gameHistory) {
+    std::unordered_map<std::string, int> historyMap;
+    for (unsigned int i = 0; i < gameHistory.moveIndex; ++i) {
+        if (historyMap.count(gameHistory.moveFens[i]) == 0) {
+            historyMap[gameHistory.moveFens[i]] = 1;
+        }
+        else {
+            historyMap[gameHistory.moveFens[i]] += 1;
+        }
+        if (historyMap[gameHistory.moveFens[i]] >= 3) {
+            return true;
+        }
+    }
+    return false;
 }

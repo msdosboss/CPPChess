@@ -9,3 +9,4 @@ build/engineClient
 build/UCIClient
 build/humanClient
 build/data/game_history.txt
+build/data/userSavedHistory.txt

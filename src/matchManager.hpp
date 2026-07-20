@@ -20,6 +20,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <chrono>
+#include <unordered_map>
 
 struct GameState {
     std::atomic<bool> gameOver;
@@ -38,6 +39,7 @@ struct GameState {
     BoardState state;
 };
 
+#define UNFINISHED 3
 #define DRAW 2
 #define ACCEPT 1
 #define CONTINUE 0
@@ -78,7 +80,15 @@ void matchManagerThread(
     std::string& UCIResponse
 );
 
-void CLIThread(std::atomic<bool>& gameOver, std::atomic<bool>& timeUp, unsigned int& gamesToPlay, std::mutex& m, std::condition_variable& cv);
+void CLIThread(
+    std::atomic<bool>& gameOver,
+    std::atomic<bool>& timeUp,
+    unsigned int& gamesToPlay,
+    struct GameHistory& gameHistory,
+    std::mutex& m,
+    std::condition_variable& cv
+);
+
 void gameHistoryToFile(struct GameHistory& history, const std::string filename);
 double SPRTVariance(int totalWins, int totalLoses, int totalDraws);
 double SPRTExpectedScore(int eloDiff);
@@ -92,6 +102,8 @@ int SPRTTest(
     int eloDiff    
 );
 
+bool drawByInsufficientMaterial(struct BoardState& state);
+bool drawByRepetition(struct GameHistory& gameHistory);
 #define LISTEN_PORT_WHITE 3001
 #define LISTEN_PORT_BLACK 3002
 const int ENGINE_LISTEN_PORT[2] = {LISTEN_PORT_WHITE, LISTEN_PORT_BLACK};

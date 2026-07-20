@@ -54,8 +54,10 @@ void humanServerListener(
             break;
         }
         if(response.find("position") != std::string::npos){
+            std::cerr << "HumanListener received position: " << response << std::endl;
             std::unique_lock lk(m);
             applyPositionCommand(response, boardState);
+            std::cerr << "boardStateToFen()="<< boardStateToFen(boardState) << std::endl;
             lk.unlock();
         }
         if(response.find("go") != std::string::npos){
@@ -114,13 +116,13 @@ void applyPositionCommand(const std::string& cmd, BoardState& boardState) {
     }
     else if (token == "fen") {
         std::string fen = "";
-        int fenPartsCount = 0;
+        //int fenPartsCount = 0;
 
         // A FEN string is exactly 6 parts separated by spaces.
         // We pull those 6 parts, and stop if we hit "moves"
-        while (fenPartsCount < 6 && ss >> token && token != "moves") {
+        while (ss >> token && token != "moves") {
             fen += token + " ";
-            fenPartsCount++;
+            //fenPartsCount++;
         }
 
         // Remove the trailing space
