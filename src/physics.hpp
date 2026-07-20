@@ -109,7 +109,7 @@ Move strMoveToMove(const std::string& strMove, BoardState& boardState);
 std::string boardStateToFen(BoardState& boardState);
 void moveSwap(MoveList legalMoves, Move possibleBestMove);
 std::string promotionChar(Move move);
-std::string createPositionCmd(BoardState& boardState);
+std::string createPositionCmd(std::string& startingFen, Move *gameHistory, int currentMove);
 std::string moveToStrMove(union Move);
 
 inline void setBit(Bitboard& bb, int square){bb |= 1ULL << square;}

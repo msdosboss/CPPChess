@@ -293,7 +293,10 @@ void engineThread(
 
         std::string cmd;
         lk.lock();
-        cmd = createPositionCmd(gameState.state) + "\n";
+        cmd = createPositionCmd(
+                gameHistory.startFen, 
+                gameHistory.moves, 
+                gameHistory.moveIndex) + "\n";
         lk.unlock();
         assert(cmd.length() <= PACKET_STR_SIZE); //Need some form of bounds checking
             //better to crash than error silently

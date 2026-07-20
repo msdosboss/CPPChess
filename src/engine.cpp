@@ -104,10 +104,15 @@ int main(){
                 fenToBoardState(fen, boardState);
             }
             if(token == "moves"){
+                gameHistorySearch.reset();
                 while(ss >> token){
                     Move move = strMoveToMove(token, boardState);
                     UndoState undo;
                     if(move.raw != 0){
+                        gameHistorySearch.push(
+                            boardState.zobristHash, 
+                            ((move.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[move.source] == PAWN)
+                        );
                         makeMove(boardState, move, undo);
                     }
                 } 

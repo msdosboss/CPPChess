@@ -3,6 +3,7 @@
 
 Move moveHistory[MAXMOVESPERGAME];
 UndoState undoHistory[MAXMOVESPERGAME];
+std::string startFen;
 int currentMove = 0;
 
 
@@ -72,7 +73,7 @@ void engineThread(
             return;
         }
         if(!engineThinking){
-            std::string positionCmd = createPositionCmd(boardState);
+            std::string positionCmd = createPositionCmd(startFen, moveHistory, currentMove);
             engine.sendCommand(positionCmd);
             //engine.sendCommand("go wtime 100000 btime 100000");
             engine.sendCommand("go");
@@ -130,6 +131,7 @@ int main(){
     }
     BoardState boardState;
     fenToBoardState(STARTFEN, boardState);
+    startFen = STARTFEN;
     //Caused a crash in matchManager but does not crash when given to the engine IDK
     //fenToBoardState("3r2k1/4R2p/3p4/1Ppr4/6P1/8/2R2K1P/8 w  -", boardState);
     //fenToBoardState("r2q1r2/ppp3k1/2np3Q/8/2BPPp2/2N5/PPP5/2K4R b  -", boardState);
