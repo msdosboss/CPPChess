@@ -1,6 +1,6 @@
 #include "search.hpp"
 
-Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo &searchInfo, int &finalEval){
+Move searchBestMoveIt(BoardState boardState, int startingDepth, int maxDepth, std::chrono::seconds duration, SearchInfo &searchInfo, int &finalEval){
     Move topMove;
     searchInfo.start = std::chrono::steady_clock::now();
     searchInfo.duration = duration;
@@ -12,7 +12,7 @@ Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds 
         return openMove;
     }
 
-    for(int currentDepth = 1; currentDepth <= maxDepth; currentDepth++){
+    for(int currentDepth = startingDepth; currentDepth <= maxDepth; currentDepth++){
         minimax(boardState, currentDepth, 0, -INFINITESCORE, INFINITESCORE, searchInfo);
 
         if(searchInfo.timesUp == true){

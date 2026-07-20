@@ -11,6 +11,6 @@
 #include "openBook.hpp"
 #include "transpositionTable.hpp"
 
-void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo);
+void runSearchWrapper(BoardState boardState, int maxDepth, unsigned int numThreads, std::chrono::seconds duration, SearchInfo& searchInfo);
 
 #endif

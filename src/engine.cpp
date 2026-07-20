@@ -73,7 +73,8 @@ int main(){
                 }
             }
             searchInfo.timesUp = false;
-            searchThread = std::thread(runSearchWrapper, boardState, depth, std::chrono::seconds(durationSeconds), std::ref(searchInfo));
+            constexpr int numThreads = 4;
+            searchThread = std::thread(runSearchWrapper, boardState, depth, numThreads, std::chrono::seconds(durationSeconds), std::ref(searchInfo));
 
         }
         else if(line.find("position") == 0){
@@ -135,7 +136,7 @@ int main(){
 }
 
 
-void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo){
+void runSearchWrapper(BoardState boardState, int maxDepth, unsigned int numThreads, std::chrono::seconds duration, SearchInfo& searchInfo){
     int finalEval = 0;
     MoveList legalMoves = generateLegalMoves(boardState);
 
@@ -144,9 +145,25 @@ void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds 
         return;
     }
 
-    Move selectedMove = searchBestMoveIt(boardState, maxDepth, duration, searchInfo, finalEval);
+    std::thread threads[numThreads];
+    if (false) { for (unsigned int i = 0; i < numThreads; ++i) {
+        threads[i] = std::thread(
+            searchBestMoveIt,
+            boardState,
+            i + 2,
+            maxDepth,
+            duration,
+            std::ref(searchInfo),
+            std::ref(finalEval)
+        );
+    } }
+
+    Move selectedMove = searchBestMoveIt(boardState, 1, maxDepth, duration, searchInfo, finalEval);
 	std::string strMove = moveToStrMove(selectedMove);
 
     std::cout << "info score cp " << finalEval << std::endl;
     std::cout << "bestmove " << strMove << std::endl;
+    for (unsigned int i = 0; i < numThreads; ++i) {
+        threads[i].join();
+    }
 }
