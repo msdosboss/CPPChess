@@ -5,12 +5,27 @@
 #include <vector>
 #include <algorithm>
 
-struct TTEntry {
-    uint64_t key;
-    int score;
-    int depth;
-    uint8_t flag;
-    Move bestMove;
+/*
+    struct TTEntry {
+        uint64_t key;
+        int score;
+        int depth;
+        uint8_t flag;
+        Move bestMove;
+    };
+*/
+
+union TTEntry {
+    struct {
+        uint64_t data;
+        uint64_t key;
+    };
+    struct {
+        Move bestMove; //move is 16 bits
+        uint16_t score;
+        uint16_t depth;
+        uint16_t flag;
+    };
 };
 
 struct TTBucket {
