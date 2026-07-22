@@ -14,14 +14,6 @@
 
 #define CAPTUREBIAS 1000
 
-struct SearchInfo{
-    std::atomic<bool> timesUp;
-    std::chrono::steady_clock::time_point start;
-    std::chrono::seconds duration;
-    std::atomic<int> nodesSearched;
-    std::vector<Move> killerMoveArray;
-};
-
 struct BoardHistoryEntry{
     uint64_t hash;
     int plySinceCapture;
@@ -39,7 +31,18 @@ class GameHistorySearch {
         int size();
         bool isRepetition(uint64_t currentHash);
         void reset();
-        
+
+};
+
+struct SearchInfo{
+    std::atomic<bool> *timesUp;
+    std::chrono::steady_clock::time_point start;
+    std::chrono::seconds duration;
+    std::atomic<int> *nodesSearched;
+    std::vector<Move> killerMoveArray;
+    //Per-thread copy of the game history so concurrent search threads
+    //don't race on a single shared stack/head (previously segfaulted).
+    GameHistorySearch history;
 };
 
 inline GameHistorySearch gameHistorySearch;
@@ -47,7 +50,7 @@ inline GameHistorySearch gameHistorySearch;
 Move searchBestMove(BoardState& boardState, int depth, int& finalEval);
 int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, SearchInfo& searchInfo);
 int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo);
-Move searchBestMoveIt(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo, int& finalEval);
+Move searchBestMoveIt(BoardState boardState, int startingDepth, int maxDepth, std::chrono::seconds duration, SearchInfo searchInfo, int& finalEval);
 void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove, struct SearchInfo& searchInfo, int ply);
 
 

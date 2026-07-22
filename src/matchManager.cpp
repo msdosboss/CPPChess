@@ -662,13 +662,13 @@ double SPRTExpectedScore(int eloDiff){
 
 bool drawByInsufficientMaterial(struct BoardState& state) {
     if (
-        state.pieces[WHITE][ROOK] != 0 && state.pieces[BLACK][ROOK] != 0 &&
-        state.pieces[WHITE][QUEEN] != 0 && state.pieces[BLACK][QUEEN] != 0 &&
-        state.pieces[WHITE][PAWN] != 0 && state.pieces[BLACK][PAWN] != 0
+        state.pieces[WHITE][ROOK] != 0 || state.pieces[BLACK][ROOK] != 0 ||
+        state.pieces[WHITE][QUEEN] != 0 || state.pieces[BLACK][QUEEN] != 0 ||
+        state.pieces[WHITE][PAWN] != 0 || state.pieces[BLACK][PAWN] != 0
     ) {
         return false;
     }
-    if (__builtin_popcountll(state.pieces[WHITE][BISHOP]) > 1 && __builtin_popcountll(state.pieces[BLACK][BISHOP]) > 1) {
+    if (__builtin_popcountll(state.pieces[WHITE][BISHOP]) > 1 || __builtin_popcountll(state.pieces[BLACK][BISHOP]) > 1) {
         return false;
     }
     return true;

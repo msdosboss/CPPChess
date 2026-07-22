@@ -2,8 +2,15 @@
 
 int main(){
     std::thread searchThread;
+    std::atomic<bool> timesUp = false;
+    std::atomic<int> nodesSearched = 0;
     SearchInfo searchInfo;
-    searchInfo.timesUp = false;
+    searchInfo.timesUp = &timesUp;
+    searchInfo.nodesSearched = &nodesSearched;
+    //Compiler gets upset at me if I don't do this
+    //Will be overwriten
+    searchInfo.duration = std::chrono::seconds(15);
+    searchInfo.start = std::chrono::steady_clock::now();
     BoardState boardState;
     fenToBoardState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", boardState);
     std::string line;
@@ -16,7 +23,7 @@ int main(){
 
     while(std::getline(std::cin, line)){
         if(line == "quit"){
-            searchInfo.timesUp = true;
+            *searchInfo.timesUp = true;
             if(searchThread.joinable()){
                 searchThread.join();
             }
@@ -72,8 +79,9 @@ int main(){
                     durationSeconds = std::max(1, bTimeSeconds / 20);
                 }
             }
-            searchInfo.timesUp = false;
-            searchThread = std::thread(runSearchWrapper, boardState, depth, std::chrono::seconds(durationSeconds), std::ref(searchInfo));
+            *searchInfo.timesUp = false;
+            constexpr int numThreads = 4;
+            searchThread = std::thread(runSearchWrapper, boardState, depth, numThreads, std::chrono::seconds(durationSeconds), searchInfo);
 
         }
         else if(line.find("position") == 0){
@@ -119,7 +127,7 @@ int main(){
             }
         }
         else if(line == "stop"){
-            searchInfo.timesUp = true;
+            *searchInfo.timesUp = true;
         }
         else{
             std::cout << "Failed to parse: " << line << std::endl;
@@ -127,7 +135,7 @@ int main(){
         
     }
 
-    searchInfo.timesUp = true;
+    *searchInfo.timesUp = true;
     if(searchThread.joinable()){
         searchThread.join();
     }
@@ -135,7 +143,7 @@ int main(){
 }
 
 
-void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds duration, SearchInfo& searchInfo){
+void runSearchWrapper(BoardState boardState, int maxDepth, unsigned int numThreads, std::chrono::seconds duration, SearchInfo searchInfo){
     int finalEval = 0;
     MoveList legalMoves = generateLegalMoves(boardState);
 
@@ -144,9 +152,28 @@ void runSearchWrapper(BoardState boardState, int maxDepth, std::chrono::seconds 
         return;
     }
 
-    Move selectedMove = searchBestMoveIt(boardState, maxDepth, duration, searchInfo, finalEval);
+    std::thread threads[numThreads];
+    //Helper threads only exist to populate the shared TT faster; their
+    //eval is discarded into a private slot so they don't race on finalEval.
+    std::vector<int> helperEvals(numThreads, 0);
+    for (unsigned int i = 0; i < numThreads; ++i) {
+        threads[i] = std::thread(
+            searchBestMoveIt,
+            boardState,
+            i + 2,
+            maxDepth,
+            duration,
+            searchInfo,
+            std::ref(helperEvals[i])
+        );
+    }
+
+    Move selectedMove = searchBestMoveIt(boardState, 1, maxDepth, duration, searchInfo, finalEval);
 	std::string strMove = moveToStrMove(selectedMove);
 
     std::cout << "info score cp " << finalEval << std::endl;
     std::cout << "bestmove " << strMove << std::endl;
+    for (unsigned int i = 0; i < numThreads; ++i) {
+        threads[i].join();
+    }
 }
