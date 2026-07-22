@@ -153,7 +153,10 @@ void runSearchWrapper(BoardState boardState, int maxDepth, unsigned int numThrea
     }
 
     std::thread threads[numThreads];
-    /*for (unsigned int i = 0; i < numThreads; ++i) {
+    //Helper threads only exist to populate the shared TT faster; their
+    //eval is discarded into a private slot so they don't race on finalEval.
+    std::vector<int> helperEvals(numThreads, 0);
+    for (unsigned int i = 0; i < numThreads; ++i) {
         threads[i] = std::thread(
             searchBestMoveIt,
             boardState,
@@ -161,16 +164,16 @@ void runSearchWrapper(BoardState boardState, int maxDepth, unsigned int numThrea
             maxDepth,
             duration,
             searchInfo,
-            std::ref(finalEval)
+            std::ref(helperEvals[i])
         );
-    }*/
+    }
 
     Move selectedMove = searchBestMoveIt(boardState, 1, maxDepth, duration, searchInfo, finalEval);
 	std::string strMove = moveToStrMove(selectedMove);
 
     std::cout << "info score cp " << finalEval << std::endl;
     std::cout << "bestmove " << strMove << std::endl;
-    /*for (unsigned int i = 0; i < numThreads; ++i) {
+    for (unsigned int i = 0; i < numThreads; ++i) {
         threads[i].join();
-    }*/
+    }
 }

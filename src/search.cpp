@@ -6,6 +6,9 @@ Move searchBestMoveIt(BoardState boardState, int startingDepth, int maxDepth, st
     searchInfo.duration = duration;
     *searchInfo.nodesSearched = 0;
     searchInfo.killerMoveArray = std::vector<Move>(maxDepth + 1);
+    //Private copy of the real game history for this thread to push/pop
+    //against, so concurrent search threads don't race on shared state.
+    searchInfo.history = gameHistorySearch;
 
     Move openMove;
     if(getBookMove(boardState.zobristHash, openMove)){
@@ -123,7 +126,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
             return 0;
         }
     }
-    if(gameHistorySearch.isRepetition(boardState.zobristHash)){
+    if(searchInfo.history.isRepetition(boardState.zobristHash)){
         return 0;
     }
     TTEntry ttEntry;
@@ -193,7 +196,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
             Move currentMove = legalMoves.moves[i];
             UndoState undo;
             makeMove(boardState, currentMove, undo);
-            gameHistorySearch.push(
+            searchInfo.history.push(
                 boardState.zobristHash, 
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
@@ -207,7 +210,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
             }
             alpha = std::max(alpha, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
-            gameHistorySearch.pop();
+            searchInfo.history.pop();
             if(beta <= alpha){
                 break;
             }
@@ -244,7 +247,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
             Move currentMove = legalMoves.moves[i];
             UndoState undo;
             makeMove(boardState, currentMove, undo);
-            gameHistorySearch.push(
+            searchInfo.history.push(
                 boardState.zobristHash, 
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
@@ -258,7 +261,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
             }
             beta = std::min(beta, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
-            gameHistorySearch.pop();
+            searchInfo.history.pop();
             if(beta <= alpha){
                 break;
             }
@@ -295,7 +298,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
     if(depth == 0){
         return evaluate(boardState);
     }
-    if(gameHistorySearch.isRepetition(boardState.zobristHash)){
+    if(searchInfo.history.isRepetition(boardState.zobristHash)){
         return 0;
     }
     int standardPat = evaluate(boardState);
@@ -324,7 +327,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             }
             UndoState undo;
             makeMove(boardState, currentMove, undo);
-            gameHistorySearch.push(
+            searchInfo.history.push(
                 boardState.zobristHash, 
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
@@ -335,7 +338,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             alpha = std::max(alpha, currentMoveScore);
             maxScore = std::max(currentMoveScore, maxScore);
             unmakeMove(boardState, currentMove, undo);
-            gameHistorySearch.pop();
+            searchInfo.history.pop();
             if(beta <= alpha){
                 break;
             }
@@ -354,7 +357,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             }
             UndoState undo;
             makeMove(boardState, currentMove, undo);
-            gameHistorySearch.push(
+            searchInfo.history.push(
                 boardState.zobristHash, 
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
@@ -365,7 +368,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
             minScore = std::min(currentMoveScore, minScore);
             beta = std::min(beta, currentMoveScore);
             unmakeMove(boardState, currentMove, undo);
-            gameHistorySearch.pop();
+            searchInfo.history.pop();
             if(beta <= alpha){
                 break;
             }

@@ -14,14 +14,6 @@
 
 #define CAPTUREBIAS 1000
 
-struct SearchInfo{
-    std::atomic<bool> *timesUp;
-    std::chrono::steady_clock::time_point start;
-    std::chrono::seconds duration;
-    std::atomic<int> *nodesSearched;
-    std::vector<Move> killerMoveArray;
-};
-
 struct BoardHistoryEntry{
     uint64_t hash;
     int plySinceCapture;
@@ -39,7 +31,18 @@ class GameHistorySearch {
         int size();
         bool isRepetition(uint64_t currentHash);
         void reset();
-        
+
+};
+
+struct SearchInfo{
+    std::atomic<bool> *timesUp;
+    std::chrono::steady_clock::time_point start;
+    std::chrono::seconds duration;
+    std::atomic<int> *nodesSearched;
+    std::vector<Move> killerMoveArray;
+    //Per-thread copy of the game history so concurrent search threads
+    //don't race on a single shared stack/head (previously segfaulted).
+    GameHistorySearch history;
 };
 
 inline GameHistorySearch gameHistorySearch;
