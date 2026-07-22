@@ -146,7 +146,7 @@ void runSearchWrapper(BoardState boardState, int maxDepth, unsigned int numThrea
     }
 
     std::thread threads[numThreads];
-    if (false) { for (unsigned int i = 0; i < numThreads; ++i) {
+    /*for (unsigned int i = 0; i < numThreads; ++i) {
         threads[i] = std::thread(
             searchBestMoveIt,
             boardState,
@@ -156,14 +156,14 @@ void runSearchWrapper(BoardState boardState, int maxDepth, unsigned int numThrea
             std::ref(searchInfo),
             std::ref(finalEval)
         );
-    } }
+    }*/
 
     Move selectedMove = searchBestMoveIt(boardState, 1, maxDepth, duration, searchInfo, finalEval);
 	std::string strMove = moveToStrMove(selectedMove);
 
     std::cout << "info score cp " << finalEval << std::endl;
     std::cout << "bestmove " << strMove << std::endl;
-    for (unsigned int i = 0; i < numThreads; ++i) {
+    /*for (unsigned int i = 0; i < numThreads; ++i) {
         threads[i].join();
-    }
+    }*/
 }
