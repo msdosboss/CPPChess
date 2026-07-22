@@ -1,10 +1,10 @@
 #include "search.hpp"
 
-Move searchBestMoveIt(BoardState boardState, int startingDepth, int maxDepth, std::chrono::seconds duration, SearchInfo &searchInfo, int &finalEval){
+Move searchBestMoveIt(BoardState boardState, int startingDepth, int maxDepth, std::chrono::seconds duration, SearchInfo searchInfo, int &finalEval){
     Move topMove;
     searchInfo.start = std::chrono::steady_clock::now();
     searchInfo.duration = duration;
-    searchInfo.nodesSearched = 0;
+    *searchInfo.nodesSearched = 0;
     searchInfo.killerMoveArray = std::vector<Move>(maxDepth + 1);
 
     Move openMove;
@@ -15,7 +15,7 @@ Move searchBestMoveIt(BoardState boardState, int startingDepth, int maxDepth, st
     for(int currentDepth = startingDepth; currentDepth <= maxDepth; currentDepth++){
         minimax(boardState, currentDepth, 0, -INFINITESCORE, INFINITESCORE, searchInfo);
 
-        if(searchInfo.timesUp == true){
+        if(*searchInfo.timesUp == true){
             break;
         }
         
@@ -60,11 +60,12 @@ void scoreMoves(BoardState& boardState, MoveList& moveList, Move bestMove, struc
     }
 }
 
+/*
 Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
     MoveList legalMoves = generateLegalMoves(boardState);
     Move bestMove = legalMoves.moves[0];
     SearchInfo searchInfo;
-    searchInfo.timesUp = false;
+    *searchInfo.timesUp = false;
 
     int alpha = -INFINITESCORE;
     int beta = INFINITESCORE;
@@ -111,13 +112,14 @@ Move searchBestMove(BoardState& boardState, int depth, int& finalEval){
 
     return bestMove;
 }
+*/
 
 int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, SearchInfo& searchInfo){
-    searchInfo.nodesSearched++;
-    if((searchInfo.nodesSearched & 2047) == 0){
+    (*searchInfo.nodesSearched)++;
+    if((*searchInfo.nodesSearched & 8191) == 0){
         std::chrono::steady_clock::time_point current = std::chrono::steady_clock::now();
         if(current - searchInfo.start > searchInfo.duration){
-            searchInfo.timesUp = true;
+            *searchInfo.timesUp = true;
             return 0;
         }
     }
@@ -196,7 +198,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
             int currentMoveScore = minimax(boardState, depth - 1, ply + 1, alpha, beta, searchInfo);
-            if(searchInfo.timesUp == true){
+            if(*searchInfo.timesUp == true){
                 return 0;
             }
             if(currentMoveScore > maxScore){
@@ -247,7 +249,7 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
             int currentMoveScore = minimax(boardState, depth - 1, ply + 1, alpha, beta, searchInfo);
-            if(searchInfo.timesUp == true){
+            if(*searchInfo.timesUp == true){
                 return 0;
             }
             if(currentMoveScore < minScore){
@@ -282,11 +284,11 @@ int minimax(BoardState& boardState, int depth, int ply, int alpha, int beta, Sea
 }
 
 int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, SearchInfo& searchInfo){
-    searchInfo.nodesSearched++;
-    if((searchInfo.nodesSearched & 2047) == 0){
+    (*searchInfo.nodesSearched)++;
+    if((*searchInfo.nodesSearched & 8191) == 0){
         std::chrono::steady_clock::time_point current = std::chrono::steady_clock::now();
         if(current - searchInfo.start > searchInfo.duration){
-            searchInfo.timesUp = true;
+            *searchInfo.timesUp = true;
             return 0;
         }
     }
@@ -327,7 +329,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
             int currentMoveScore = quiescenceSearch(boardState, depth - 1, alpha, beta, searchInfo);
-            if(searchInfo.timesUp == true){
+            if(*searchInfo.timesUp == true){
                 return 0;
             }
             alpha = std::max(alpha, currentMoveScore);
@@ -357,7 +359,7 @@ int quiescenceSearch(BoardState& boardState, int depth, int alpha, int beta, Sea
                 ((currentMove.flags & CAPTUREMOVE) == CAPTUREMOVE || boardState.pieceArray[currentMove.source] == PAWN)
             );
             int currentMoveScore = quiescenceSearch(boardState, depth - 1, alpha, beta, searchInfo);
-            if(searchInfo.timesUp == true){
+            if(*searchInfo.timesUp == true){
                 return 0;
             }
             minScore = std::min(currentMoveScore, minScore);
