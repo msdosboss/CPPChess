@@ -185,7 +185,7 @@ void zobristFlags(BoardState& boardState){
         boardState.zobristHash ^= zobristCastle[WHITEKINGCASTLE];
     }
     if(boardState.enPassantSquare != -1){
-        int enPassantFile = boardState.enPassantSquare % 8;
+        int enPassantFile = boardState.enPassantSquare & (0b111);
         boardState.zobristHash ^= zobristEnPassant[enPassantFile];
     }
 }

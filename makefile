@@ -11,10 +11,10 @@ createKeys: objects/createKeys.o objects/openBook.o
 debug: debugMain debugEngine
 
 debugMain: src/UCIClient.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp
-	$(CXX) $(CXXFLAGS) -g -o build/main src/UCIClient.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp $(SDL_FLAGS)
+	$(CXX) $(CXXFLAGS) -pg -o build/main src/UCIClient.cpp src/physics.cpp src/engineProcess.cpp src/openBook.cpp src/gui.cpp $(SDL_FLAGS)
 
 debugEngine: src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/openBook.cpp src/transpositionTable.cpp
-	$(CXX) $(CXXFLAGS) -g -o build/engine src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/openBook.cpp src/transpositionTable.cpp
+	$(CXX) $(CXXFLAGS) -pg -o build/engine src/engine.cpp src/search.cpp src/evaluate.cpp src/physics.cpp src/openBook.cpp src/transpositionTable.cpp
 
 
 # Compile the GUI
